@@ -16,8 +16,8 @@ mpDraw = mp.solutions.drawing_utils
 
 def get_blobs(frame):
     frame_blurred = cv2.medianBlur(frame, 7)
-    frame_gray = cv2.cvtColor(frame_blurred, cv2.COLOR_BGR2GRAY)
-    blobs = detector.detect(frame_gray)
+    frame_rgb = cv2.cvtColor(frame_blurred, cv2.COLOR_BGR2RGB)  # Change color space to RGB
+    blobs = detector.detect(frame_rgb)
 
     return blobs
 
@@ -56,30 +56,43 @@ def get_dice_from_blobs(blobs):
         return []
 
 
-def overlay_info(frame, dice, blobs):
+def overlay_info(frame, dice, blobs, hand_closed):
     # Overlay blobs
     for b in blobs:
         pos = b.pt
         r = b.size / 2
 
-        cv2.circle(frame, (int(pos[0]), int(pos[1])),
+        if hand_closed:
+            cv2.circle(frame, (int(pos[0]), int(pos[1])),
+                   int(r), (0, 0, 0), 2)
+        else:
+            cv2.circle(frame, (int(pos[0]), int(pos[1])),
                    int(r), (255, 0, 0), 2)
+        
 
     # Overlay dice number
     for d in dice:
         # Get textsize for text centering
         textsize = cv2.getTextSize(
             str(d[0]), cv2.FONT_HERSHEY_PLAIN, 3, 2)[0]
+        
+        # Set color of text based on hand state
+        if hand_closed:
+            color = (255, 255, 0)  # yellow
+        else:
+            color = (0, 255, 0)  # green
 
         cv2.putText(frame, str(d[0]),
                     (int(d[1] - textsize[0] / 2),
                      int(d[2] + textsize[1] / 2)),
-                    cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 2)
+                    cv2.FONT_HERSHEY_PLAIN, 3, color, 2)
+    return frame
 
 
 # Initialize a video feed
 cap = cv2.VideoCapture(0)
 
+hand_closed = False
 
 while(True):
     # Grab the latest image from the video feed
@@ -88,25 +101,37 @@ while(True):
     # We'll define these later
     blobs = get_blobs(frame)
     dice = get_dice_from_blobs(blobs)
-    out_frame = overlay_info(frame, dice, blobs)
-
-
+    out_frame = overlay_info(frame, dice, blobs, hand_closed)
 
     res = cv2.waitKey(1)
 
     # Stop if the user presses "q"
     if res & 0xFF == ord('q'):
         break
+
     result = hands.process(frame)
+
     if result.multi_hand_landmarks:
         for handLandmarks in result.multi_hand_landmarks:
             mpDraw.draw_landmarks(frame, handLandmarks, mpHands.HAND_CONNECTIONS)
-            for lmId, lm in enumerate(handLandmarks.landmark):
+
+            # Get the position of the tip of the index finger and the palm
+            index_tip = handLandmarks.landmark[8]
+            palm = handLandmarks.landmark[0]
+
+            # Calculate the distance between the tip of the index finger and the palm
+            dist = ((index_tip.x - palm.x)**2 + (index_tip.y - palm.y)**2)**0.5
+
+        for lmId, lm in enumerate(handLandmarks.landmark):
                 if lmId == 4:
                     h, w, _ = frame.shape
-                    print(int(lm.x * w), int(lm.y * h))    
+                    if lm.y < handLandmarks.landmark[2].y:  # check if fist is closed
+                        hand_closed = True
+                    else:
+                        hand_closed = False
     
-    cv2.imshow("frame", frame)
+    cv2.imshow("frame", out_frame)
+
 # When everything is done, release the capture
 cap.release()
 cv2.destroyAllWindows()
