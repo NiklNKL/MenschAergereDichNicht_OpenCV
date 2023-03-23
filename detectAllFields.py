@@ -5,6 +5,9 @@ import numpy as np
 MINR_AREA_RATIO = 8.670466504392528e-06
 
 def get_angle(a, b, c):
+	"""
+	source: https://stackoverflow.com/questions/58579072/calculate-the-angle-between-two-lines-2-options-and-efficiency
+	"""
 	ang = math.degrees(math.atan2(c[1]-b[1], c[0]-b[0]) - math.atan2(a[1]-b[1], a[0]-b[0]))
 	return ang + 360 if ang < 0 else ang
 
