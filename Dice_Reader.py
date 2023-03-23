@@ -1,112 +1,103 @@
+# Quentin Golsteyn Dice Detection
+# https://golsteyn.com/writing/dice
+
 import cv2
 import numpy as np
 from sklearn import cluster
-import mediapipe as mp
 
-params = cv2.SimpleBlobDetector_Params()
+class DiceDetector:
+    def __init__(self, capId, cap = None):
+        # Initialize the webcam 
+        if not cap == None:
+            self.cap = cap
+        else:
+            self.cap = cv2.VideoCapture(capId)
+        self.detector = cv2.SimpleBlobDetector_create(self._get_blob_detector_params())
 
-params.filterByInertia
-params.minInertiaRatio = 0.6
-
-detector = cv2.SimpleBlobDetector_create(params)
-
-mpHands = mp.solutions.hands
-hands = mpHands.Hands()
-mpDraw = mp.solutions.drawing_utils
-
-def get_blobs(frame):
-    frame_blurred = cv2.medianBlur(frame, 7)
-    frame_gray = cv2.cvtColor(frame_blurred, cv2.COLOR_BGR2GRAY)
-    blobs = detector.detect(frame_gray)
-
-    return blobs
-
-
-def get_dice_from_blobs(blobs):
-    # Get centroids of all blobs
-    X = []
-    for b in blobs:
-        pos = b.pt
-
-        if pos != None:
-            X.append(pos)
-
-    X = np.asarray(X)
-
-    if len(X) > 0:
-        # Important to set min_sample to 0, as a dice may only have one dot
-        clustering = cluster.DBSCAN(eps=40, min_samples=1).fit(X)
-
-        # Find the largest label assigned + 1, that's the number of dice found
-        num_dice = max(clustering.labels_) + 1
-
-        dice = []
-
-        # Calculate centroid of each dice, the average between all a dice's dots
-        for i in range(num_dice):
-            X_dice = X[clustering.labels_ == i]
-
-            centroid_dice = np.mean(X_dice, axis=0)
-
-            dice.append([len(X_dice), *centroid_dice])
-
-        return dice
-
-    else:
-        return []
-
-
-def overlay_info(frame, dice, blobs):
-    # Overlay blobs
-    for b in blobs:
-        pos = b.pt
-        r = b.size / 2
-
-        cv2.circle(frame, (int(pos[0]), int(pos[1])),
-                   int(r), (255, 0, 0), 2)
-
-    # Overlay dice number
-    for d in dice:
-        # Get textsize for text centering
-        textsize = cv2.getTextSize(
-            str(d[0]), cv2.FONT_HERSHEY_PLAIN, 3, 2)[0]
-
-        cv2.putText(frame, str(d[0]),
-                    (int(d[1] - textsize[0] / 2),
-                     int(d[2] + textsize[1] / 2)),
-                    cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 2)
-
-
-# Initialize a video feed
-cap = cv2.VideoCapture(0)
-
-
-while(True):
-    # Grab the latest image from the video feed
-    ret, frame = cap.read()
-
-    # We'll define these later
-    blobs = get_blobs(frame)
-    dice = get_dice_from_blobs(blobs)
-    out_frame = overlay_info(frame, dice, blobs)
-
-
-
-    res = cv2.waitKey(1)
-
-    # Stop if the user presses "q"
-    if res & 0xFF == ord('q'):
-        break
-    result = hands.process(frame)
-    if result.multi_hand_landmarks:
-        for handLandmarks in result.multi_hand_landmarks:
-            mpDraw.draw_landmarks(frame, handLandmarks, mpHands.HAND_CONNECTIONS)
-            for lmId, lm in enumerate(handLandmarks.landmark):
-                if lmId == 4:
-                    h, w, _ = frame.shape
-                    print(int(lm.x * w), int(lm.y * h))    
     
-    cv2.imshow("frame", frame)
-# When everything is done, release the capture
-cap.release()
-cv2.destroyAllWindows()
+    def _get_blob_detector_params(self):
+
+        params = cv2.SimpleBlobDetector_Params()
+
+        params.filterByInertia
+        params.minInertiaRatio = 0.6
+        return(params)
+
+    def get_blobs(self, frame):
+        frame_blurred = cv2.medianBlur(frame, 7)
+        frame_gray = cv2.cvtColor(frame_blurred, cv2.COLOR_BGR2GRAY)
+        blobs = self.detector.detect(frame_gray)
+
+        return blobs
+
+
+    def get_dice_from_blobs(self, blobs):
+        # Get centroids of all blobs
+        X = []
+        for b in blobs:
+            pos = b.pt
+
+            if pos != None:
+                X.append(pos)
+
+        X = np.asarray(X)
+
+        if len(X) > 0:
+            # Important to set min_sample to 0, as a dice may only have one dot
+            clustering = cluster.DBSCAN(eps=40, min_samples=1).fit(X)
+
+            # Find the largest label assigned + 1, that's the number of dice found
+            num_dice = max(clustering.labels_) + 1
+
+            dice = []
+
+            # Calculate centroid of each dice, the average between all a dice's dots
+            for i in range(num_dice):
+                X_dice = X[clustering.labels_ == i]
+
+                centroid_dice = np.mean(X_dice, axis=0)
+
+                dice.append([len(X_dice), *centroid_dice])
+
+            return dice
+
+        else:
+            return []
+
+
+    def overlay_info(self, frame, dice, blobs):
+        # Overlay blobs
+        for b in blobs:
+            pos = b.pt
+            r = b.size / 2
+
+            cv2.circle(frame, (int(pos[0]), int(pos[1])),
+                    int(r), (255, 0, 0), 2)
+
+        # Overlay dice number
+        for d in dice:
+            # Get textsize for text centering
+            textsize = cv2.getTextSize(
+                str(d[0]), cv2.FONT_HERSHEY_PLAIN, 3, 2)[0]
+
+            cv2.putText(frame, str(d[0]),
+                        (int(d[1] - textsize[0] / 2),
+                        int(d[2] + textsize[1] / 2)),
+                        cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 2)
+        return frame
+
+    def run(self):
+        # Grab the latest image from the video feed
+        ret, frame = self.cap.read()
+
+        blobs = self.get_blobs(frame)
+        dice = self.get_dice_from_blobs(blobs)
+        out_frame = self.overlay_info(frame, dice, blobs) 
+
+        cv2.imshow("frame", out_frame)
+
+        if len(dice) > 0:
+            print(dice[0][0])
+            return dice[0][0]
+        else:
+            return 0
