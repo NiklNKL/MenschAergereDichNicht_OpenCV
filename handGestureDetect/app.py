@@ -9,6 +9,7 @@ import mediapipe as mp
 import tensorflow as tf
 from tensorflow import keras
 from keras.models import load_model
+import time
 
 # initialize mediapipe
 mpHands = mp.solutions.hands
@@ -24,9 +25,66 @@ classNames = f.read().split('\n')
 f.close()
 print(classNames)
 
+previous_class = ''
+time_without_change = 0
+turn_number = 0
+reset_logic = False
+time_since_last_thumb = 0
+last_thumb_time = time.time()
+last_update_time = time.time()
 
 # Initialize the webcam
 cap = cv2.VideoCapture(0)
+cv2.namedWindow('Live-Anzeige', cv2.WINDOW_NORMAL)
+cv2.namedWindow('Current-Turn', cv2.WINDOW_NORMAL)
+
+def current_turn(value):
+    global reset_logic, turn_number, time_since_last_thumb, last_thumb_time
+
+    if value == "thumbs up" and reset_logic == False and time.time() - last_thumb_time > 3:
+        turn_number += 1
+        reset_logic = True
+        time_since_last_thumb = 0
+        last_thumb_time = time.time()
+    else:
+        reset_logic = False
+        time_since_last_thumb = time.time() - last_thumb_time
+
+    img = np.zeros((800, 1600, 3), np.uint8)
+    cv2.putText(img, str("Turn: " + str(turn_number)), (50, 200 ), cv2.FONT_HERSHEY_SIMPLEX, 6, (255, 255, 255), 5)
+    cv2.imshow('Current-Turn', img)
+
+def update_image(className):
+    # Hier kann der aktuelle Wert der Variable abgerufen werden
+    global previous_class, time_without_change, last_update_time
+
+     # Wenn sich der Klassenname geändert hat, setze die Zeit ohne Änderung auf 0 zurück und aktualisiere previous_class
+    if className != previous_class:
+        previous_class = className
+        time_without_change = 0
+    else:
+        # Andernfalls erhöhe die Zeit ohne Änderung um die vergangene Zeit seit dem letzten Update
+        time_without_change += time.time() - last_update_time
+
+     # Wenn die Zeit ohne Änderung größer als 3 Sekunden ist, aktualisiere das Bild
+    if time_without_change >= 3:
+        # Hier kann der aktuelle Wert der Variable abgerufen werden
+        current_value = className
+
+        # Erstellen Sie ein Bild mit dem aktuellen Wert
+        img = np.zeros((800, 1600, 3), np.uint8)
+        cv2.putText(img, str(current_value), (50, 200 ), cv2.FONT_HERSHEY_SIMPLEX, 6, (255, 255, 255), 5)
+
+        # Zeigen Sie das Bild im Fenster an
+        cv2.imshow('Live-Anzeige', img)
+        
+        # Setze die letzte Aktualisierungszeit auf die aktuelle Zeit
+        last_update_time = time.time()
+        return(current_value)
+    
+    # Speichere die letzte Aktualisierungszeit
+    last_update_time = time.time()
+
 
 while True:
     # Read each frame from the webcam
@@ -58,7 +116,7 @@ while True:
 
             # Predict gesture
             prediction = model.predict([landmarks])
-            # print(prediction)
+            
             classID = np.argmax(prediction)
             className = classNames[classID]
 
@@ -67,7 +125,11 @@ while True:
                    1, (0,0,255), 2, cv2.LINE_AA)
 
     # Show the final output
-    cv2.imshow("Output", frame) 
+    cv2.imshow("Output", frame)
+    
+    currentClass = update_image(className)
+
+    current_turn(currentClass)
 
     if cv2.waitKey(1) == ord('q'):
         break
