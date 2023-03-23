@@ -11,7 +11,7 @@ params.minInertiaRatio = 0.6
 detector = cv2.SimpleBlobDetector_create(params)
 
 mpHands = mp.solutions.hands
-hands = mpHands.Hands()
+hands = mpHands.Hands(max_num_hands=2)
 mpDraw = mp.solutions.drawing_utils
 
 def get_blobs(frame):
@@ -92,6 +92,8 @@ def overlay_info(frame, dice, blobs, hand_closed):
 # Initialize a video feed
 cap = cv2.VideoCapture(0)
 
+cv2.namedWindow("Hand State")
+
 hand_closed = False
 
 while(True):
@@ -129,7 +131,16 @@ while(True):
                         hand_closed = True
                     else:
                         hand_closed = False
+    if hand_closed:
+        hand_text = "Hand: geschlossen"
+    else:
+        hand_text = "Hand: offen"
     
+
+    cv2.putText(frame, hand_text, (50, 50), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
+    cv2.imshow("Hand State", np.zeros((100, 300, 3), np.uint8))
+    cv2.imshow("Hand State", cv2.putText(np.zeros((100, 300, 3), np.uint8), hand_text, (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2))
+
     cv2.imshow("frame", out_frame)
 
 # When everything is done, release the capture
