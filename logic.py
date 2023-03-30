@@ -1,3 +1,4 @@
+from preparations import Prepare
 from handgesture import HandGestureRecognizer
 from Dice_Reader import DiceDetector
 import cv2
@@ -32,7 +33,23 @@ class Logic():
         return status
 
 if __name__ == "__main__":
-    cap = cv2.VideoCapture(1)
+    useImg = False
+
+    if useImg:
+        # frame = cv2.imread('brett.png', cv2.IMREAD_COLOR)
+        # frame = cv2.imread('data/empty.JPG', cv2.IMREAD_COLOR)
+        frame = cv2.imread('data/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
+        # frame = cv2.imread('data/wHand.JPG', cv2.IMREAD_COLOR) # <- case that should not work
+        # frame = cv2.imread('data/w2fieldsCovered.jpg', cv2.IMREAD_COLOR) # <- case that should not work
+        PrepareHandler = Prepare(frame = frame)
+    else:
+        capId = 0
+        cap = cv2.VideoCapture(capId)
+        # PrepareHandler = Prepare(capId = capId)
+        PrepareHandler = Prepare(cap = cap)
+   
+    BoardgameHandler = PrepareHandler.run()
+
     GestureHandler = HandGestureRecognizer(capId = 1, timeThreshold = 3, cap = cap)
     DiceHandler = DiceDetector(capId = 1, cap = cap)
     LogicHandler = Logic()

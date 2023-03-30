@@ -224,27 +224,3 @@ class Prepare:
 
         print("finished preparations")
         return BoardgameHandler
-
-if __name__ == "__main__":
-    
-    useImg = True
-
-    if useImg:
-        # frame = cv2.imread('brett.png', cv2.IMREAD_COLOR)
-        # frame = cv2.imread('data/empty.JPG', cv2.IMREAD_COLOR)
-        frame = cv2.imread('data/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
-        # frame = cv2.imread('data/wHand.JPG', cv2.IMREAD_COLOR) # <- case that should not work
-        # frame = cv2.imread('data/w2fieldsCovered.jpg', cv2.IMREAD_COLOR) # <- case that should not work
-        PrepareHandler = Prepare(frame = frame)
-    else:
-        capId = 0
-        cap = cv2.VideoCapture(capId)
-        # PrepareHandler = Prepare(capId = capId)
-        PrepareHandler = Prepare(cap = cap)
-   
-    BoardgameHandler = PrepareHandler.run()
-
-    # release the webcam and destroy all active windows
-    if not useImg:
-        cv2.VideoCapture(capId).release()
-        cv2.destroyAllWindows()

@@ -1,2 +1,5 @@
 venv/
 testing.ipynb
+node_modules/
+__pycache__
+.DS_Store
