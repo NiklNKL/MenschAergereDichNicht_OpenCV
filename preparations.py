@@ -146,10 +146,20 @@ class Prepare:
                 """
                 print("finished starting field detection")
                 return index
-
         ## return -1 if green wasn't detected
         print("could not identify green starting field")
         return -1
+
+    ## calculate middle between two Fields
+    def get_middle(self, a:Field, b:Field):
+        ## get x value for middle Field
+        x = np.average([a.imgPos[0],b.imgPos[0]])
+
+        ## get y value for middle Field
+        y = np.average([a.imgPos[1],b.imgPos[1]])
+        
+        return Field(imgPos=(x,y), hasFigure=False, streetIndex=-1)
+    
 
     def check_color_in_mask(self, mask, color):
         lower_color = np.array(color[0], dtype=np.uint8)
@@ -178,6 +188,31 @@ class Prepare:
                                                        team = color,
                                                        item = figureNum))
             startField += 10
+
+        ## iterate through all players with their respective startfield index
+        for player in BoardgameHandler.players:
+
+            ## get index of first field after start field
+            index = player.startField + 1
+
+            ## distance to field on the other side of the endfield
+            diff = 4
+
+            endfields = []
+
+            for _ in range(4):
+                ## get index of field on the other side of the endfield
+                _index = (index-diff)%40
+                ## get field objects 
+                field = BoardgameHandler.fields[index]
+                _field = BoardgameHandler.fields[_index]
+                ## endfield is in between the to points
+                endfields.append(self.get_middle(field, _field))
+                ## index increases by 1 for the next endfield and distance between the opposite street fields increases by two
+                index += 1
+                diff += 2
+            player.set_endfields(endfields)
+
 
         print("finished boardgame creation")
 

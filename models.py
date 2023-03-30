@@ -21,3 +21,7 @@ class Player:
 		self.color = color
 		self.startField = startField
 		self.finishField = (startField + 39)%40
+		self.endfields = None
+
+	def set_endfields(self, endfields:list):
+		self.endfields = endfields
