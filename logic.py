@@ -7,10 +7,34 @@ import numpy as np
 
 
 class Logic():
-    def __init__(self) -> None:
+    def __init__(self, diceId, gestureId, cap=None) -> None:
         self.currentClass = ""
         self.currentDice = 0
         self.turn_number = 0
+
+        if diceId == gestureId:
+            cap = cv2.VideoCapture(diceId)
+            self.diceHandler = DiceDetector(capId=diceId, cap=cap)
+            self.gestureHandler = HandGestureRecognizer(capId=gestureId, timeThreshold = 3, cap=cap)
+        else:
+            self.diceHandler = DiceDetector(capId=diceId)
+            self.gestureHandler = HandGestureRecognizer(capId=gestureId, timeThreshold = 3)
+
+
+    def get_current_dice(self):
+         
+        while True:
+
+            newClass = self.gestureHandler.run()
+            newDice = self.diceHandler.run()
+            if not newClass == self.currentClass and self.currentClass == "thumbs up":
+                self.currentClass = newClass 
+            elif newClass == "thumbs up" and not self.currentClass == "thumbs up":
+                # self.turn_number += 1
+                self.currentDice = newDice
+                self.currentClass = newClass
+                break
+        return newDice
 
     def current_turn(self, newClass, newDice):
         status = 0
@@ -50,13 +74,35 @@ if __name__ == "__main__":
    
     BoardgameHandler = PrepareHandler.run()
 
-    GestureHandler = HandGestureRecognizer(capId = 1, timeThreshold = 3, cap = cap)
-    DiceHandler = DiceDetector(capId = 1, cap = cap)
-    LogicHandler = Logic()
+    # GestureHandler = HandGestureRecognizer(capId = 1, timeThreshold = 3, cap = cap)
+    # DiceHandler = DiceDetector(capId = 1, cap = cap)
+    LogicHandler = Logic(capId = 1, cap = cap)
     while True:
-        currentClass = GestureHandler.run()
-        currentDice = DiceHandler.run()
-        status = LogicHandler.current_turn(currentClass, currentDice)
+        
+
+        
+        
+        # currentClass = GestureHandler.run()
+        # currentDice = DiceHandler.run()
+
+        # status = LogicHandler.current_turn(currentClass, currentDice)
+        if not BoardgameHandler.current_player.has_movable_figures():
+            for _ in range(3):
+                eye_count = LogicHandler.get_current_dice()
+                print(eye_count)
+                if eye_count == 6:
+                    self.move(p, 6)
+                    break
+        ## dice übergeben check for possible moves of current player
+
+        ## if possible move
+            ## gesture input
+        ## repeat move, counter++
+        
+
+
+
+
         if cv2.waitKey(1) == ord('q') or status == 1:
             break
     # release the webcam and destroy all active windows
