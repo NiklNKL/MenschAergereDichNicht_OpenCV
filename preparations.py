@@ -6,12 +6,17 @@ from models import Boardgame, Field, Figure, Player
 class Prepare:
     def __init__(self, capId = None, cap = None, frame = None):
         self.useImg = False
-        # Initialize the webcam 
+
+        ## for testing purposes a single frame can be used
         if not frame is None:
             self.frame = frame
             self.useImg = True
+        
+        ## a VideCapture object could also be used (if multiple instances use the same cap)
         elif not cap is None:
             self.cap = cap
+
+        ## otherwise use the device id to create a VideoCapture
         else:
             self.cap = cv2.VideoCapture(capId)
     
@@ -106,6 +111,7 @@ class Prepare:
             ## detect "street"
             detected_circles = self.detect_circles(gray, corners, center, minR_factor=0.044528126006590264, maxR_factor=0.05343375120790832)
 
+            """
             ## show detected fields
             fields = np.uint16(np.around(detected_circles))
             for pt in fields:
@@ -117,6 +123,7 @@ class Prepare:
 
             cv2.imshow("frame", frame)
             cv2.waitKey(0)
+            """
 
             ## order by angle
             corner = corners[0]
@@ -164,7 +171,6 @@ class Prepare:
         
         return Field(imgPos=(x,y), hasFigure=False, streetIndex=-1)
     
-
     def check_color_in_mask(self, mask, color):
         lower_color = np.array(color[0], dtype=np.uint8)
         upper_color = np.array(color[1], dtype=np.uint8)
@@ -182,14 +188,15 @@ class Prepare:
         
         ## create Player objects
         startField = 0
-        for color in ["green", "red", "black", "yellow"]:
+        for index, color in enumerate(["green", "red", "black", "yellow"]):
             BoardgameHandler.players.append(Player(color = color,
+                                                   id = index,
                                                    startField = startField))
             
             ## create Figure objects for each player (item range [1,4])
             for figureNum in range(1,5):
                 BoardgameHandler.players[-1].figures.append(Figure(relPos = None,
-                                                       team = BoardgameHandler.players[-1],
+                                                       player = BoardgameHandler.players[-1],
                                                        item = figureNum))
             startField += 10
         

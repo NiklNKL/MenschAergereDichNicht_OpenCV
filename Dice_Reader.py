@@ -97,7 +97,7 @@ class DiceDetector:
         cv2.imshow("frame", out_frame)
 
         if len(dice) > 0:
-            print(dice[0][0])
+            # print(dice[0][0])
             return dice[0][0]
         else:
             return 0
