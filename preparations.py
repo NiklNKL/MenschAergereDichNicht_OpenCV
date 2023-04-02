@@ -6,12 +6,17 @@ from models import Boardgame, Field, Figure, Player
 class Prepare:
     def __init__(self, capId = None, cap = None, frame = None):
         self.useImg = False
-        # Initialize the webcam 
+
+        ## for testing purposes a single frame can be used
         if not frame is None:
             self.frame = frame
             self.useImg = True
-        elif not cap is None:
+        
+        ## a VideCapture object could also be used (if multiple instances use the same cap)
+        elif cap is not None:
             self.cap = cap
+
+        ## otherwise use the device id to create a VideoCapture
         else:
             self.cap = cv2.VideoCapture(capId)
     
@@ -70,6 +75,32 @@ class Prepare:
 
         return (corners, center)
 
+    def detect_circles(self, img, corners, center, minR_factor, maxR_factor):
+        ## detect "street"
+        detected_circles = np.array([])
+        maxNum = 0
+        ## initialize max and min radius with distance relative to the size of the playground
+        minR = round(minR_factor * math.dist(corners[0],center))
+        maxR = round(maxR_factor * math.dist(corners[0],center))
+        while(minR >= 0):
+            print(f"radius: {minR} to {maxR}")
+            circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, 1, 50, param1 = 120, param2 = 45, minRadius = minR, maxRadius = maxR)
+            if circles is not None:
+                numCircles = circles.shape[1]
+                print(f"found {numCircles} circles")
+
+                if numCircles == 40:
+                    detected_circles = np.squeeze(circles, axis=0)
+                    break
+                elif numCircles > maxNum and numCircles < 40:
+                    maxNum = numCircles
+                    detected_circles = np.squeeze(circles, axis=0)
+            else:
+                print("could not find any circle")
+
+            minR -= 5
+        return detected_circles
+
     def get_street(self, frame, corners, center):
             ## blur
             blurred = cv2.medianBlur(frame, 7)
@@ -78,28 +109,7 @@ class Prepare:
             gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
 
             ## detect "street"
-            detected_circles = np.array([])
-            maxNum = 0
-            ## initialize max and min radius with distance relative to the size of the playground
-            minR = round(0.044528126006590264 * math.dist(corners[0],center))
-            maxR = round(0.05343375120790832 * math.dist(corners[0],center))
-            while(minR >= 0):
-                print(f"radius: {minR} to {maxR}")
-                circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 50, param1 = 120, param2 = 45, minRadius = minR, maxRadius = maxR)
-                if circles is not None:
-                    numCircles = circles.shape[1]
-                    print(f"found {numCircles} circles")
-
-                    if numCircles == 40:
-                        detected_circles = np.squeeze(circles, axis=0)
-                        break
-                    elif numCircles > maxNum and numCircles < 40:
-                        maxNum = numCircles
-                        detected_circles = np.squeeze(circles, axis=0)
-                else:
-                    print("could not find any circle")
-
-                minR -= 5
+            detected_circles = self.detect_circles(gray, corners, center, minR_factor=0.044528126006590264, maxR_factor=0.05343375120790832)
 
             """
             ## show detected fields
@@ -114,6 +124,7 @@ class Prepare:
             cv2.imshow("frame", frame)
             cv2.waitKey(0)
             """
+
             ## order by angle
             corner = corners[0]
             angles = []
@@ -158,9 +169,8 @@ class Prepare:
         ## get y value for middle Field
         y = np.average([a.imgPos[1],b.imgPos[1]])
         
-        return Field(imgPos=(x,y), hasFigure=False, streetIndex=-1)
+        return Field(imgPos=(x,y), figure=None, streetIndex=-1)
     
-
     def check_color_in_mask(self, mask, color):
         lower_color = np.array(color[0], dtype=np.uint8)
         upper_color = np.array(color[1], dtype=np.uint8)
@@ -173,21 +183,25 @@ class Prepare:
         ## create Field objects (streetIndex range [0,39])
         for index, field in enumerate(street[start:] + street[:start]):
             BoardgameHandler.fields.append(Field(imgPos = field[1:3],
-                                                 hasFigure = False,
+                                                 figure = None,
                                                  streetIndex = index))
         
         ## create Player objects
         startField = 0
-        for color in ["green", "red", "black", "yellow"]:
+        for index, color in enumerate(["green", "red", "black", "yellow"]):
             BoardgameHandler.players.append(Player(color = color,
+                                                   id = index,
                                                    startField = startField))
             
-            ## create Figure objects for each player (item range [1,4])
+            ## create Figure objects for each player (id range [1,4])
             for figureNum in range(1,5):
-                BoardgameHandler.figures.append(Figure(relPos = None,
-                                                       team = color,
-                                                       item = figureNum))
+                BoardgameHandler.players[-1].figures.append(Figure(relPos = None,
+                                                       player = BoardgameHandler.players[-1],
+                                                       id = figureNum))
             startField += 10
+        
+        BoardgameHandler.players[-1].figures[0].set_position(16)
+        BoardgameHandler.fields[6].figure = BoardgameHandler.players[-1].figures[0]
 
         ## iterate through all players with their respective startfield index
         for player in BoardgameHandler.players:
@@ -220,38 +234,38 @@ class Prepare:
 
     def run(self):
         # Grab the latest image from the video feed
-        if self.useImg:
-            frame = self.frame
-        else:
-            frameAvailable, frame = self.cap.read()
+        if not self.useImg:
+        #     rsframe = self.fame
+        # else:
+            frameAvailable, self.frame = self.cap.read()
             if not frameAvailable:
                 print("no more frames")
         
         ## get playground
         while True:
             try:
-                corners, center = self.get_playground(frame)
+                corners, center = self.get_playground(self.frame)
                 break
             except Exception as e:
                 print(e)
 
         ## get street
         while True:
-            detectedCircles = self.get_street(frame, corners, center)
+            detectedCircles = self.get_street(self.frame, corners, center)
             if len(detectedCircles) == 40:
                 break
         
         ## get green starting field
         indexOfGreen = -1
         while indexOfGreen == -1:
-            indexOfGreen = self.identify_green_startingfield(frame, detectedCircles)
+            indexOfGreen = self.identify_green_startingfield(self.frame, detectedCircles)
 
         ## create boardgame 
         BoardgameHandler = self.create_boardgame(detectedCircles, indexOfGreen)
 
         ## check if everything was created correctly
         for field in BoardgameHandler.fields:
-            print({"imgPos": field.imgPos, "figure": field.hasFigure, "streetIndex": field.streetIndex})
+            print({"imgPos": field.imgPos, "figure": field.figure, "streetIndex": field.streetIndex})
         for player in BoardgameHandler.players:
             print({"color": player.color, "startField": player.startField, "finishField": player.finishField})
         for figure in BoardgameHandler.figures:
@@ -259,3 +273,28 @@ class Prepare:
 
         print("finished preparations")
         return BoardgameHandler
+    
+### testing main
+    
+if __name__ == "__main__":
+
+     useImg = False
+
+     if useImg:
+         # frame = cv2.imread('brett.png', cv2.IMREAD_COLOR)
+         # frame = cv2.imread('data/empty.JPG', cv2.IMREAD_COLOR)
+         frame = cv2.imread('data/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
+         # frame = cv2.imread('data/wHand.JPG', cv2.IMREAD_COLOR) # <- case that should not work
+         # frame = cv2.imread('data/w2fieldsCovered.jpg', cv2.IMREAD_COLOR) # <- case that should not work
+         PrepareHandler = Prepare(frame = frame)
+     else:
+         capId = 0
+         cap = cv2.VideoCapture(capId)
+         # PrepareHandler = Prepare(capId = capId)
+         PrepareHandler = Prepare(cap = cap)
+
+     BoardgameHandler = PrepareHandler.run()
+
+     # release the webcam and destroy all active windows
+     if not useImg:
+         cv2.VideoCapture(capId).release()

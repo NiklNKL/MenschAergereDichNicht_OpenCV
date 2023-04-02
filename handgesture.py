@@ -26,10 +26,10 @@ class HandGestureRecognizer:
         self.mpDraw = mp.solutions.drawing_utils
 
         # Load the gesture recognizer model
-        self.model = load_model('handGestureDetect\mp_hand_gesture')
+        self.model = load_model('handGestureDetect/mp_hand_gesture')
 
         # Load class names
-        f = open('handGestureDetect\gesture.names', 'r')
+        f = open('handGestureDetect/gesture.names', 'r')
         self.classNames = f.read().split('\n')
         f.close()
 
@@ -43,12 +43,14 @@ class HandGestureRecognizer:
         if className != self.previousClass:
             self.previousClass = className
             self.time_without_change = 0
+            if className == '':
+                self.currentClass = className
         else:
             # Andernfalls erhöhe die Zeit ohne Änderung um die vergangene Zeit seit dem letzten Update
             self.time_without_change += time.time() - self.last_update_time
 
         self.last_update_time = time.time()
-        # Wenn die Zeit ohne Änderung größer als 3 Sekunden ist, aktualisiere das Bild
+        # Wenn die Zeit ohne Änderung größer als timeThreshold Sekunden ist, aktualisiere das Bild
         if self.time_without_change >= self.timeThreshold:
             # Hier kann der aktuelle Wert der Variable abgerufen werden
             current_value = className
@@ -70,7 +72,7 @@ class HandGestureRecognizer:
         # Speichere die letzte Aktualisierungszeit
         
 
-    def run(self):
+    def run(self, UiHandler):
         # Read each frame from the webcam
         _, frame = self.cap.read()
 
@@ -99,7 +101,7 @@ class HandGestureRecognizer:
                 self.mpDraw.draw_landmarks(frame, handslms, self.mpHands.HAND_CONNECTIONS)
 
                 # Predict gesture
-                prediction = self.model.predict([landmarks])
+                prediction = self.model.predict([landmarks], verbose=0)
                 
                 classID = np.argmax(prediction)
                 className = self.classNames[classID]
@@ -109,7 +111,8 @@ class HandGestureRecognizer:
                     1, (0,0,255), 2, cv2.LINE_AA)
 
         # Show the final output
-        cv2.imshow("Output", frame)
+        UiHandler.update(gestureFrame = frame)
+        # cv2.imshow("Output", frame)
         
         self.update_class(className)
         return self.currentClass

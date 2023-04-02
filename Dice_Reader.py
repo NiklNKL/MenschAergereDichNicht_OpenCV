@@ -13,7 +13,6 @@ class DiceDetector:
         else:
             self.cap = cv2.VideoCapture(capId)
         self.detector = cv2.SimpleBlobDetector_create(self._get_blob_detector_params())
-
     
     def _get_blob_detector_params(self):
 
@@ -86,18 +85,19 @@ class DiceDetector:
                         cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 2)
         return frame
 
-    def run(self):
+    def run(self, UiHandler):
         # Grab the latest image from the video feed
         ret, frame = self.cap.read()
 
         blobs = self.get_blobs(frame)
         dice = self.get_dice_from_blobs(blobs)
         out_frame = self.overlay_info(frame, dice, blobs) 
-
-        cv2.imshow("frame", out_frame)
+        UiHandler.update(diceFrame = out_frame)
+        # cv2.imshow("frame", out_frame)
 
         if len(dice) > 0:
-            print(dice[0][0])
+            # print(dice[0][0])
+            return 6
             return dice[0][0]
         else:
             return 0
