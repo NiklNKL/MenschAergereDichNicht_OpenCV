@@ -36,13 +36,13 @@ class Logic():
             newClass = self.gestureHandler.run(UiHandler)
             newDice = self.diceHandler.run(UiHandler)
             # print(f"{newClass}  {newDice}")
-
-            if not newClass == self.currentClass and self.currentClass == "thumbs up":
-                self.currentClass = newClass 
-            elif newClass == "thumbs up" and not self.currentClass == "thumbs up":
-                self.currentClass = newClass
-                print(f"retreived {newDice}")
-                break
+            if newDice in range(1,7):
+                if not newClass == self.currentClass and self.currentClass == "thumbs up":
+                    self.currentClass = newClass 
+                elif newClass == "thumbs up" and not self.currentClass == "thumbs up":
+                    self.currentClass = newClass
+                    print(f"retreived {newDice}")
+                    break
             
             ## needed to show video feed constantly
             if cv2.waitKey(1) == ord('q'):
@@ -83,14 +83,14 @@ if __name__ == "__main__":
         # frame = cv2.imread('data/w2fieldsCovered.jpg', cv2.IMREAD_COLOR) # <- case that should not work
         PrepareHandler = Prepare(frame = frame)
     else:
-        capId = 0
+        capId = 1
         cap = cv2.VideoCapture(capId)
         # PrepareHandler = Prepare(capId = capId)
         PrepareHandler = Prepare(cap = cap)
    
     BoardgameHandler = PrepareHandler.run()
 
-    LogicHandler = Logic(diceId = 0, gestureId = 0)
+    LogicHandler = Logic(diceId = 1, gestureId = 1)
     UiHandler = LogicHandler.UiHandler
 
     while True:

@@ -15,14 +15,36 @@ class Boardgame:
 			## Wenn Zug möglich, wähle einen aus
 			chosen_figure = LogicHandler.choose_move(avail_moves)
 			## führe Zug aus
-			self.move(p, chosen_figure, eye_count)
+			self.move(p, chosen_figure, eye_count, LogicHandler.UiHandler)
 
-	def move(self, p_current_player, p_chosen_figure, p_eye_count):
+	def move(self, p_current_player, p_chosen_figure, p_eye_count, UiHandler):
+		
+		if p_chosen_figure.relPos is not None:
+			## remove figure from old field
+			old_absPos = self.normalize_position(p_player_id=p_current_player.id, p_position=p_chosen_figure.relPos)
+			self.fields[old_absPos].figure = None
+		
+		##new relative pos
 		newPos = self.calculate_new_pos(p_chosen_figure, p_eye_count)
+		
+		##set field.figure
+		try:
+			##new abs pos
+			absPos = self.normalize_position(p_player_id=p_current_player.id, p_position=newPos)
+			
+			self.kick(absPos, UiHandler)
 
-		self.kick(p_current_player, newPos)
-		p_chosen_figure.set_position(newPos)
+			self.fields[absPos].figure = p_chosen_figure
+			print(f"NewPos: {newPos}")
+			print(f"AbsPos: {absPos}")
+		except IndexError:
+			## move into endfield
+			endfieldPos = newPos % 40
+			p_current_player.endfields[endfieldPos].figure = p_chosen_figure
+
+		## set figure.relPos
 		print(f"Moved {p_chosen_figure.id} to {newPos}")
+		p_chosen_figure.set_position(newPos)
 
 	def calculate_new_pos(self, p_chosen_figure, p_eye_count):
 		newPos = 0
@@ -30,20 +52,26 @@ class Boardgame:
 			newPos = p_chosen_figure.relPos + p_eye_count
 		return newPos
 		
-	def kick(self, p_current_player, p_new_position):
-		if p_new_position > 39:
+	def kick(self, absPos, UiHandler):
+		if absPos > 39:
 			return
 
-		normalized_new_pos = self.normalize_position(p_current_player.id, p_new_position)
-
-		for figure in self.figures:
-			try:
-				if normalized_new_pos == self.normalize_position(figure.player.id, figure.get_position()):
-					figure.set_position = None
-					print(f"figure {figure.id} got kicked!")
-					break
-			except IndexError:
-				continue
+		# normalized_new_pos = self.normalize_position(p_current_player.id, p_new_position)
+		field = self.fields[absPos]
+		
+		if field.figure is not None:
+			field.figure.set_position(None)
+			UiHandler.update_text(prompt=f"figure {field.figure} got kicked!")
+			# print(f"figure {field.figure} got kicked!")
+		
+		# for figure in self.figures:
+		# 	try:
+		# 		if normalized_new_pos == self.normalize_position(figure.player.id, figure.get_position()):
+		# 			figure.set_position = None
+		# 			print(f"figure {figure.id} got kicked!")
+		# 			break
+		# 	except IndexError:
+		# 		continue
 	
 	def normalize_position(self, p_player_id, p_position):
 		"""
@@ -55,7 +83,9 @@ class Boardgame:
 		player = 1; pos = 0
 		normalized --> 10
 		"""
-		if p_position > 39 or p_position is None:
+		if p_position is None:
+			raise IndexError
+		if p_position > 39:
 			raise IndexError
 
 		return (p_position + p_player_id * 10) % 40
@@ -64,7 +94,7 @@ class Boardgame:
 class Field:
 	def __init__(self, imgPos:tuple, figure, streetIndex:int):
 		self.imgPos = imgPos
-		self.Figure = figure
+		self.figure = figure
 		self.streetIndex = streetIndex # 0 - 43
 
 
@@ -90,6 +120,9 @@ class Figure:
 		if self.relPos != None and self.relPos > 39:
 				is_on_finish = True
 		return is_on_finish
+	
+	def __str__(self) -> str:
+		return f"ID: {self.id}, Relative Position: {self.relPos}, Player: {self.player.color}"
 
 
 class Player:

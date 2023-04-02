@@ -169,7 +169,7 @@ class Prepare:
         ## get y value for middle Field
         y = np.average([a.imgPos[1],b.imgPos[1]])
         
-        return Field(imgPos=(x,y), hasFigure=False, streetIndex=-1)
+        return Field(imgPos=(x,y), figure=None, streetIndex=-1)
     
     def check_color_in_mask(self, mask, color):
         lower_color = np.array(color[0], dtype=np.uint8)
@@ -183,7 +183,7 @@ class Prepare:
         ## create Field objects (streetIndex range [0,39])
         for index, field in enumerate(street[start:] + street[:start]):
             BoardgameHandler.fields.append(Field(imgPos = field[1:3],
-                                                 hasFigure = None,
+                                                 figure = None,
                                                  streetIndex = index))
         
         ## create Player objects
@@ -201,6 +201,7 @@ class Prepare:
             startField += 10
         
         BoardgameHandler.players[-1].figures[0].set_position(16)
+        BoardgameHandler.fields[6].figure = BoardgameHandler.players[-1].figures[0]
 
         ## iterate through all players with their respective startfield index
         for player in BoardgameHandler.players:
@@ -264,7 +265,7 @@ class Prepare:
 
         ## check if everything was created correctly
         for field in BoardgameHandler.fields:
-            print({"imgPos": field.imgPos, "figure": field.hasFigure, "streetIndex": field.streetIndex})
+            print({"imgPos": field.imgPos, "figure": field.figure, "streetIndex": field.streetIndex})
         for player in BoardgameHandler.players:
             print({"color": player.color, "startField": player.startField, "finishField": player.finishField})
         for figure in BoardgameHandler.figures:
@@ -277,7 +278,7 @@ class Prepare:
     
 if __name__ == "__main__":
 
-     useImg = True
+     useImg = False
 
      if useImg:
          # frame = cv2.imread('brett.png', cv2.IMREAD_COLOR)
