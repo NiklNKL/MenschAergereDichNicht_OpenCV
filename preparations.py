@@ -13,7 +13,7 @@ class Prepare:
             self.useImg = True
         
         ## a VideCapture object could also be used (if multiple instances use the same cap)
-        elif not cap is None:
+        elif cap is not None:
             self.cap = cap
 
         ## otherwise use the device id to create a VideoCapture
@@ -183,7 +183,7 @@ class Prepare:
         ## create Field objects (streetIndex range [0,39])
         for index, field in enumerate(street[start:] + street[:start]):
             BoardgameHandler.fields.append(Field(imgPos = field[1:3],
-                                                 hasFigure = False,
+                                                 hasFigure = None,
                                                  streetIndex = index))
         
         ## create Player objects
@@ -193,13 +193,15 @@ class Prepare:
                                                    id = index,
                                                    startField = startField))
             
-            ## create Figure objects for each player (item range [1,4])
+            ## create Figure objects for each player (id range [1,4])
             for figureNum in range(1,5):
                 BoardgameHandler.players[-1].figures.append(Figure(relPos = None,
                                                        player = BoardgameHandler.players[-1],
-                                                       item = figureNum))
+                                                       id = figureNum))
             startField += 10
         
+        BoardgameHandler.players[-1].figures[0].set_position(16)
+
         ## iterate through all players with their respective startfield index
         for player in BoardgameHandler.players:
 
@@ -231,31 +233,31 @@ class Prepare:
 
     def run(self):
         # Grab the latest image from the video feed
-        if self.useImg:
-            frame = self.frame
-        else:
-            frameAvailable, frame = self.cap.read()
+        if not self.useImg:
+        #     rsframe = self.fame
+        # else:
+            frameAvailable, self.frame = self.cap.read()
             if not frameAvailable:
                 print("no more frames")
         
         ## get playground
         while True:
             try:
-                corners, center = self.get_playground(frame)
+                corners, center = self.get_playground(self.frame)
                 break
             except Exception as e:
                 print(e)
 
         ## get street
         while True:
-            detectedCircles = self.get_street(frame, corners, center)
+            detectedCircles = self.get_street(self.frame, corners, center)
             if len(detectedCircles) == 40:
                 break
         
         ## get green starting field
         indexOfGreen = -1
         while indexOfGreen == -1:
-            indexOfGreen = self.identify_green_startingfield(frame, detectedCircles)
+            indexOfGreen = self.identify_green_startingfield(self.frame, detectedCircles)
 
         ## create boardgame 
         BoardgameHandler = self.create_boardgame(detectedCircles, indexOfGreen)

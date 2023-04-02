@@ -22,10 +22,11 @@ class Boardgame:
 
 		self.kick(p_current_player, newPos)
 		p_chosen_figure.set_position(newPos)
+		print(f"Moved {p_chosen_figure.id} to {newPos}")
 
 	def calculate_new_pos(self, p_chosen_figure, p_eye_count):
 		newPos = 0
-		if not p_chosen_figure.relPos is None:
+		if  p_chosen_figure.relPos is not None:
 			newPos = p_chosen_figure.relPos + p_eye_count
 		return newPos
 		
@@ -39,7 +40,7 @@ class Boardgame:
 			try:
 				if normalized_new_pos == self.normalize_position(figure.player.id, figure.get_position()):
 					figure.set_position = None
-					print(f"figure {figure.item} got kicked!")
+					print(f"figure {figure.id} got kicked!")
 					break
 			except IndexError:
 				continue
@@ -57,20 +58,21 @@ class Boardgame:
 		if p_position > 39 or p_position is None:
 			raise IndexError
 
-		return (p_position + p_player_id * 10) % 39
+		return (p_position + p_player_id * 10) % 40
 
 
 class Field:
-	def __init__(self, imgPos:tuple, hasFigure:bool, streetIndex:int):
+	def __init__(self, imgPos:tuple, figure, streetIndex:int):
 		self.imgPos = imgPos
-		self.hasFigure = hasFigure
+		self.Figure = figure
 		self.streetIndex = streetIndex # 0 - 43
 
+
 class Figure:
-	def __init__(self, relPos:int, player, item:int):
+	def __init__(self, relPos:int, player, id:int):
 		self.relPos = relPos
 		self.player = player
-		self.item = item # 1-4
+		self.id = id # 1-4
 	
 	def get_position(self):
 		return self.relPos
@@ -88,11 +90,12 @@ class Figure:
 		if self.relPos != None and self.relPos > 39:
 				is_on_finish = True
 		return is_on_finish
-	
+
+
 class Player:
 	def __init__(self, color:str, id:int, startField:int):
 		self.color = color
-		self.id = id
+		self.id = id # 0-3
 		self.figures = []
 		self.startField = startField
 		self.finishField = (startField + 39)%40
@@ -112,7 +115,7 @@ class Player:
 		# Prüfe ob position einer figur kleiner als (43-anzahl Figuren auf dem Feld) ist
 		for f in self.figures:
 			if f.get_position() != None:
-				if self.is_start() == False & (int(f.get_position()) <= (43-(4-num_players_start))):
+				if f.is_start() == False & (int(f.get_position()) <= (43-(4-num_players_start))):
 					return True
 
 		return False
@@ -123,14 +126,14 @@ class Player:
 		for f in self.figures:
 			# Check ob aus Start rausgegangen werden kann
 			if (f.is_start()) & (p_eye_count == 6) & (self.is_figure_on_position(0) == False):
-				print("Figure " + str(f.get_id()) + " (" + str(f.get_position()) + ") available")
+				print("Figure " + str(f.id) + " (" + str(f.get_position()) + ") available")
 				available_figures.append([f, 0])
 				
 			elif (not f.is_start()):
 				new_position = f.get_position() + p_eye_count
 				# Falls Position + Aktuelle Position kleiner als 39 ist und keine Kollision mit eigenen Figuren
 				if (new_position <= 39) & (self.is_figure_on_position(new_position) == False):
-					print("Figure " + str(f.get_id()) + " (" + str(f.get_position()) + ") available")
+					print("Figure " + str(f.id) + " (" + str(f.get_position()) + ") available")
 					available_figures.append([f, new_position])
 
 				# Falls 39 < newPosition <= 43 die neue Position ist, checke ob übersprungene Plätze frei
@@ -142,7 +145,7 @@ class Player:
 							finish_free = False
 							break
 					if finish_free:
-						print("Figure " + str(f.get_id()) + " (" + str(f.get_position()) + ") available")
+						print("Figure " + str(f.id) + " (" + str(f.get_position()) + ") available")
 						available_figures.append([f, new_position])
 		
 		return available_figures
