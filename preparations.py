@@ -75,7 +75,7 @@ class Prepare:
 
         return (corners, center)
 
-    def detect_circles(self, img, corners, center, minR_factor, maxR_factor):
+    def detect_circles(self, img, corners, center, minR_factor, maxR_factor, fields):
         ## detect "street"
         detected_circles = np.array([])
         maxNum = 0
@@ -89,10 +89,10 @@ class Prepare:
                 numCircles = circles.shape[1]
                 print(f"found {numCircles} circles")
 
-                if numCircles == 40:
+                if numCircles == fields:
                     detected_circles = np.squeeze(circles, axis=0)
                     break
-                elif numCircles > maxNum and numCircles < 40:
+                elif numCircles > maxNum and numCircles < fields:
                     maxNum = numCircles
                     detected_circles = np.squeeze(circles, axis=0)
             else:
@@ -109,7 +109,7 @@ class Prepare:
             gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
 
             ## detect "street"
-            detected_circles = self.detect_circles(gray, corners, center, minR_factor=0.044528126006590264, maxR_factor=0.05343375120790832)
+            detected_circles = self.detect_circles(gray, corners, center, minR_factor=0.044528126006590264, maxR_factor=0.05343375120790832, fields=40)
 
             """
             ## show detected fields
@@ -137,6 +137,72 @@ class Prepare:
 
             return sortedStreet
 
+    def get_home_and_end(self, frame, corners, center, street, indexOfGreen):
+        ## blur
+        blurred = cv2.medianBlur(frame, 7)
+
+        ## convert to gray scale for HoughCircles
+        gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
+
+        ## detect "street"
+        detected_circles = self.detect_circles(gray, corners, center, minR_factor=0.0333960945049427, maxR_factor=0.03784890710560172, fields=32)
+
+        ## order by angle with vector (center->green start)
+        green = street[indexOfGreen][1:]
+        angles = []
+        for x, y, r in detected_circles:
+            angle = self.get_angle(green, center, (x,y))
+            angles.append([angle, x, y, r])
+        sortedStreet = sorted(angles,key=lambda c: c[0])
+
+        ## shift index
+        sortedStreet = np.roll(sortedStreet, (4,4,4,4))
+
+        ## get endfields and homefields
+        homefields, endfields  = [], []
+        for i in range(0,32,8):
+            homefield, endfield = [], []
+
+            endfield = sortedStreet[i:i+4]
+            ## sort by distance to center
+            endfield = sorted(endfield, key=lambda c: math.dist(center, (c[1],c[2])), reverse=True)
+
+            homefield = sortedStreet[i+4:i+8]
+            ## top left field is first value and bottom right field is last value
+            homefield = np.array(sorted(homefield, key= lambda c: c[1]+c[2]))
+            ## set top right field to index 1 if not already, bottom left to index 2 
+            if homefield[1][2]>homefield[2][2]:
+                homefield[[1,2]]=homefield[[2,1]]
+
+            homefields.append(homefield)
+            endfields.append(endfield)
+
+
+        # endfields = np.uint16(np.around(endfields))
+        # homefields = np.uint16(np.around(homefields))
+
+        # for index, color in enumerate(["G","R","B","Y"]):
+        #     homefield = homefields[index]
+        #     endfield = endfields[index]
+        #     for idx, (_, a, b, r) in enumerate(homefield):
+        #     # a, b, r = pt[1], pt[2], pt[3]
+        #     # Draw the circumference of the circle.
+        #         cv2.circle(frame, (a, b), r, (0, 255, 0), 20)
+        #         # Draw a small circle (of radius 1) to show the center.
+        #         cv2.putText(frame, f"H_{color}_{idx}", (a, b), cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
+        #     for idx, (_, a, b, r) in enumerate(endfield):
+        #     # a, b, r = pt[1], pt[2], pt[3]
+        #     # Draw the circumference of the circle.
+        #         cv2.circle(frame, (a, b), r, (0, 255, 0), 20)
+        #         # Draw a small circle (of radius 1) to show the center.
+        #         cv2.putText(frame, f"E_{color}_{idx}", (a, b), cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
+
+        # cv2.imshow("frame", frame)
+        # cv2.waitKey(0)
+
+        print(f"finished non_street detection with {len(sortedStreet)} fields")
+        return homefields, endfields
+    
     def identify_green_startingfield(self, frame, street):
         """
         source: https://stackoverflow.com/questions/61516526/how-to-use-opencv-to-crop-circular-image
@@ -160,16 +226,6 @@ class Prepare:
         ## return -1 if green wasn't detected
         print("could not identify green starting field")
         return -1
-
-    ## calculate middle between two Fields
-    def get_middle(self, a:Field, b:Field):
-        ## get x value for middle Field
-        x = np.average([a.imgPos[0],b.imgPos[0]])
-
-        ## get y value for middle Field
-        y = np.average([a.imgPos[1],b.imgPos[1]])
-        
-        return Field(imgPos=(x,y), figure=None, streetIndex=-1)
     
     def check_color_in_mask(self, mask, color):
         lower_color = np.array(color[0], dtype=np.uint8)
@@ -177,7 +233,7 @@ class Prepare:
         color_mask = cv2.inRange(mask, lower_color, upper_color)
         return np.sum(color_mask) > 0
  
-    def create_boardgame(self, street, start):
+    def create_boardgame(self, street, start, homefields, endfields):
         ## create Field objects (streetIndex range [0,39])
         for index, field in enumerate(street[start:] + street[:start]):
             game_logic.fields.append(Field(imgPos = field[1:3],
@@ -205,28 +261,12 @@ class Prepare:
         game_logic.fields[6].figure = game_logic.players[-1].figures[0]
 
         ## iterate through all players with their respective startfield index
-        for player in game_logic.players:
+        for index, player in enumerate(game_logic.players):
+            homefield = homefields[index]
+            endfield = endfields[index]
 
-            ## get index of first field after start field
-            index = player.startField + 1
-
-            ## distance to field on the other side of the endfield
-            diff = 4
-
-            endfields = []
-
-            for _ in range(4):
-                ## get index of field on the other side of the endfield
-                _index = (index-diff)%40
-                ## get field objects 
-                field = game_logic.fields[index]
-                _field = game_logic.fields[_index]
-                ## endfield is in between the to points
-                endfields.append(self.get_middle(field, _field))
-                ## index increases by 1 for the next endfield and distance between the opposite street fields increases by two
-                index += 1
-                diff += 2
-            player.set_endfields(endfields)
+            player.set_homefield(homefield)
+            player.set_endfield(endfield)
 
 
         print("finished boardgame creation")
@@ -250,17 +290,22 @@ class Prepare:
 
         ## get street
         while True:
-            detectedCircles = self.get_street(self.frame, corners, center)
-            if len(detectedCircles) == 40:
+            street = self.get_street(self.frame, corners, center)
+            if len(street) == 40:
                 break
         
         ## get green starting field
         indexOfGreen = -1
         while indexOfGreen == -1:
-            indexOfGreen = self.identify_green_startingfield(self.frame, detectedCircles)
+            indexOfGreen = self.identify_green_startingfield(self.frame, street)
 
+        ## get homefields and endfields
+        while True:
+            homefields, endfields = self.get_home_and_end(self.frame, corners, center, street, indexOfGreen)
+            if len(homefields) == 4:
+                break
         ## create boardgame 
-        self.create_boardgame(detectedCircles, indexOfGreen)
+        self.create_boardgame(street, indexOfGreen, homefields, endfields)
 
         ## check if everything was created correctly
         for field in game_logic.fields:

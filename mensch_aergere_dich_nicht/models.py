@@ -40,10 +40,15 @@ class Player:
 		self.figures = []
 		self.startField = startField
 		self.finishField = (startField + 39)%40
-		self.endfields = None
+		self.endfield = None
+		self.homefield = None
 
-	def set_endfields(self, endfields:list):
-		self.endfields = endfields
+
+	def set_homefield(self, homefield):
+		self.homefield = [Field(imgPos=(x[1],x[2]), figure=self.figures[id],streetIndex=None) for id, x in enumerate(homefield)]
+
+	def set_endfield(self, endfield):
+		self.endfield = [Field(imgPos=(x[1],x[2]), figure=None,streetIndex=None) for x in endfield]
 
 	# Checks whether there are movable figures on the field
 	def has_movable_figures(self):
