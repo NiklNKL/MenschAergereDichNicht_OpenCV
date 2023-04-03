@@ -36,7 +36,7 @@ class Ui:
         self.stream = np.vstack((self.numpy_horizontal_upper, self.numpy_horizontal_lower))
         cv2.imshow("Result", self.stream)
 
-    def update_text(self, player=None, turn=None, dice=None, movableFigures=None, prompt=None):
+    def update_text(self, player=None, turn=None, dice=None, movableFigures=None, prompt=""):
         ## reset current content
         overlay = np.zeros((self.shape[1], self.shape[0], 3), np.uint8)
         
@@ -47,8 +47,6 @@ class Ui:
             self.turn = turn
         if dice is not None:
             self.dice = dice
-        if prompt is not None:
-            self.prompt = prompt
         if movableFigures is not None:
             self.movableFigures = movableFigures
 
@@ -73,7 +71,7 @@ class Ui:
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
 
         cv2.putText(overlay, 
-                    f"{self.prompt}",
+                    f"{prompt}",
                     (50,250),
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
             
