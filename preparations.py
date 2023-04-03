@@ -1,7 +1,7 @@
 import cv2
 import math
 import numpy as np
-from models import Boardgame, Field, Figure, Player
+from mensch_aergere_dich_nicht import game_logic, Field, Figure, Player
 
 class Prepare:
     def __init__(self, capId = None, cap = None, frame = None):
@@ -178,33 +178,34 @@ class Prepare:
         return np.sum(color_mask) > 0
  
     def create_boardgame(self, street, start):
-        BoardgameHandler = Boardgame()
-
         ## create Field objects (streetIndex range [0,39])
         for index, field in enumerate(street[start:] + street[:start]):
-            BoardgameHandler.fields.append(Field(imgPos = field[1:3],
-                                                 figure = None,
-                                                 streetIndex = index))
+            game_logic.fields.append(Field(imgPos = field[1:3],
+                                           figure = None,
+                                           streetIndex = index))
         
         ## create Player objects
         startField = 0
         for index, color in enumerate(["green", "red", "black", "yellow"]):
-            BoardgameHandler.players.append(Player(color = color,
-                                                   id = index,
-                                                   startField = startField))
+            game_logic.players.append(Player(color = color,
+                                             id = index,
+                                             startField = startField))
             
             ## create Figure objects for each player (id range [1,4])
             for figureNum in range(1,5):
-                BoardgameHandler.players[-1].figures.append(Figure(relPos = None,
-                                                       player = BoardgameHandler.players[-1],
-                                                       id = figureNum))
+                figure = Figure(relPos = None,
+                                player = game_logic.players[-1],
+                                id = figureNum)
+                game_logic.figures.append(figure)
+                game_logic.players[-1].figures.append(figure)
             startField += 10
         
-        BoardgameHandler.players[-1].figures[0].set_position(16)
-        BoardgameHandler.fields[6].figure = BoardgameHandler.players[-1].figures[0]
+        ## move yellow's figure 1 to absPos 6 to test kick logic
+        game_logic.players[-1].figures[0].set_position(16)
+        game_logic.fields[6].figure = game_logic.players[-1].figures[0]
 
         ## iterate through all players with their respective startfield index
-        for player in BoardgameHandler.players:
+        for player in game_logic.players:
 
             ## get index of first field after start field
             index = player.startField + 1
@@ -218,8 +219,8 @@ class Prepare:
                 ## get index of field on the other side of the endfield
                 _index = (index-diff)%40
                 ## get field objects 
-                field = BoardgameHandler.fields[index]
-                _field = BoardgameHandler.fields[_index]
+                field = game_logic.fields[index]
+                _field = game_logic.fields[_index]
                 ## endfield is in between the to points
                 endfields.append(self.get_middle(field, _field))
                 ## index increases by 1 for the next endfield and distance between the opposite street fields increases by two
@@ -230,13 +231,11 @@ class Prepare:
 
         print("finished boardgame creation")
 
-        return BoardgameHandler
+        # return game_logic
 
     def run(self):
-        # Grab the latest image from the video feed
+        # Grab the latest image from the video feed or frame that has been handed over
         if not self.useImg:
-        #     rsframe = self.fame
-        # else:
             frameAvailable, self.frame = self.cap.read()
             if not frameAvailable:
                 print("no more frames")
@@ -261,40 +260,38 @@ class Prepare:
             indexOfGreen = self.identify_green_startingfield(self.frame, detectedCircles)
 
         ## create boardgame 
-        BoardgameHandler = self.create_boardgame(detectedCircles, indexOfGreen)
+        self.create_boardgame(detectedCircles, indexOfGreen)
 
         ## check if everything was created correctly
-        for field in BoardgameHandler.fields:
+        for field in game_logic.fields:
             print({"imgPos": field.imgPos, "figure": field.figure, "streetIndex": field.streetIndex})
-        for player in BoardgameHandler.players:
+        for player in game_logic.players:
             print({"color": player.color, "startField": player.startField, "finishField": player.finishField})
-        for figure in BoardgameHandler.figures:
-            print({"relPos": figure.relPos, "team": figure.team, "item": figure.item})
-
+        for figure in game_logic.figures:
+            print({"relPos": figure.relPos, "team": figure.player, "item": figure.id})
         print("finished preparations")
-        return BoardgameHandler
     
 ### testing main
     
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-     useImg = False
+#      useImg = False
 
-     if useImg:
-         # frame = cv2.imread('brett.png', cv2.IMREAD_COLOR)
-         # frame = cv2.imread('data/empty.JPG', cv2.IMREAD_COLOR)
-         frame = cv2.imread('data/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
-         # frame = cv2.imread('data/wHand.JPG', cv2.IMREAD_COLOR) # <- case that should not work
-         # frame = cv2.imread('data/w2fieldsCovered.jpg', cv2.IMREAD_COLOR) # <- case that should not work
-         PrepareHandler = Prepare(frame = frame)
-     else:
-         capId = 0
-         cap = cv2.VideoCapture(capId)
-         # PrepareHandler = Prepare(capId = capId)
-         PrepareHandler = Prepare(cap = cap)
+#      if useImg:
+#          # frame = cv2.imread('brett.png', cv2.IMREAD_COLOR)
+#          # frame = cv2.imread('data/empty.JPG', cv2.IMREAD_COLOR)
+#          frame = cv2.imread('data/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
+#          # frame = cv2.imread('data/wHand.JPG', cv2.IMREAD_COLOR) # <- case that should not work
+#          # frame = cv2.imread('data/w2fieldsCovered.jpg', cv2.IMREAD_COLOR) # <- case that should not work
+#          PrepareHandler = Prepare(frame = frame)
+#      else:
+#          capId = 0
+#          cap = cv2.VideoCapture(capId)
+#          # PrepareHandler = Prepare(capId = capId)
+#          PrepareHandler = Prepare(cap = cap)
 
-     BoardgameHandler = PrepareHandler.run()
+#      game_logic = PrepareHandler.run()
 
-     # release the webcam and destroy all active windows
-     if not useImg:
-         cv2.VideoCapture(capId).release()
+#      # release the webcam and destroy all active windows
+#      if not useImg:
+#          cv2.VideoCapture(capId).release()

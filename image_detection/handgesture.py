@@ -26,10 +26,10 @@ class HandGestureRecognizer:
         self.mpDraw = mp.solutions.drawing_utils
 
         # Load the gesture recognizer model
-        self.model = load_model('handGestureDetect/mp_hand_gesture')
+        self.model = load_model('image_detection/handGestureDetect/mp_hand_gesture')
 
         # Load class names
-        f = open('handGestureDetect/gesture.names', 'r')
+        f = open('image_detection/handGestureDetect/gesture.names', 'r')
         self.classNames = f.read().split('\n')
         f.close()
 
