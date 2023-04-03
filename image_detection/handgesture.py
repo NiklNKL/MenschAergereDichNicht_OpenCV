@@ -12,7 +12,7 @@ from keras.models import load_model
 import time
 
 class HandGestureRecognizer:
-    def __init__(self, capId, timeThreshold, confidence = 0.5, cap = None):
+    def __init__(self, capId, timeThreshold, confidence = 0.7, cap = None):
         # Initialize the webcam 
         if not cap == None:
             self.cap = cap
@@ -23,6 +23,7 @@ class HandGestureRecognizer:
         # initialize mediapipe
         self.mpHands = mp.solutions.hands
         self.hands = self.mpHands.Hands(max_num_hands=1, min_detection_confidence=confidence)
+        self.finger = self.mpHands.Hands(max_num_hands=2, min_detection_confidence=confidence)
         self.mpDraw = mp.solutions.drawing_utils
 
         # Load the gesture recognizer model
@@ -54,44 +55,14 @@ class HandGestureRecognizer:
         if self.time_without_change >= self.timeThreshold:
             # Hier kann der aktuelle Wert der Variable abgerufen werden
             current_value = className
-            """"
-            # Erstellen Sie ein Bild mit dem aktuellen Wert
-            
-            img = np.zeros((800, 1600, 3), np.uint8)
-            cv2.putText(img, str(current_value), (50, 200 ), cv2.FONT_HERSHEY_SIMPLEX, 6, (255, 255, 255), 5)
-
-            # Zeigen Sie das Bild im Fenster an
-            cv2.imshow('Live-Anzeige', img)
-            """
-            # print(current_value)
-            
             # Setze die letzte Aktualisierungszeit auf die aktuelle Zeit
             # self.last_update_time = time.time()
             self.currentClass = current_value
         
         # Speichere die letzte Aktualisierungszeit
 
-    def countFingers(self, image, results, draw=False):
-        '''
-        This function will count the number of fingers up for each hand in the image.
-        Args:
-            image:   The image of the hands on which the fingers counting is required to be performed.
-            results: The output of the hands landmarks detection performed on the image of the hands.
-            draw:    A boolean value that is if set to true the function writes the total count of fingers of the hands on the
-                    output image.
-            display: A boolean value that is if set to true the function displays the resultant image and returns nothing.
-        Returns:
-            output_image:     A copy of the input image with the fingers count written, if it was specified.
-            fingers_statuses: A dictionary containing the status (i.e., open or close) of each finger of both hands.
-            count:            A dictionary containing the count of the fingers that are up, of both hands.
-        '''
-        
-        # Get the height and width of the input image.
-        height, width, _ = image.shape
-        
-        # Create a copy of the input image to write the count of fingers on.
-        output_image = image.copy()
-        
+    def countFingers(self, results):
+    
         # Initialize a dictionary to store the count of fingers of both hands.
         count = {'RIGHT': 0, 'LEFT': 0}
         
@@ -142,19 +113,8 @@ class HandGestureRecognizer:
                 # Increment the count of the fingers up of the hand by 1.
                 count[hand_label.upper()] += 1
         
-        # Check if the total count of the fingers of both hands are specified to be written on the output image.
-        if draw:
-
-            # Write the total count of the fingers of both hands on the output image.
-            cv2.putText(output_image, " Total Fingers: ", (10, 25),cv2.FONT_HERSHEY_COMPLEX, 1, (20,255,155), 2)
-            cv2.putText(output_image, str(sum(count.values())), (width//2-150,240), cv2.FONT_HERSHEY_SIMPLEX,
-                        8.9, (20,255,155), 10, 10)
-
-        # Check if the output image is specified to be displayed.
-        else:
-
-            # Return the output image, the status of each finger and the count of the fingers up of both hands.
-            return output_image, fingers_statuses, count
+        # Return the output image, the status of each finger and the count of the fingers up of both hands.
+        return count
 
     def run(self, UiHandler):
         # Read each frame from the webcam
@@ -168,9 +128,10 @@ class HandGestureRecognizer:
 
         # Get hand landmark prediction
         result = self.hands.process(framergb)
+        fingerResult = self.finger.process(framergb)
         
         className = ''
-        count = ""
+        count = {'RIGHT': 0, 'LEFT': 0}
 
         # post process the result
         if result.multi_hand_landmarks:
@@ -183,23 +144,19 @@ class HandGestureRecognizer:
                     landmarks.append([lmx, lmy])
 
                 # Drawing landmarks on frames
-                self.mpDraw.draw_landmarks(image = frame, landmark_list = handslms,
-                                      connections = self.mpHands.HAND_CONNECTIONS,
-                                      landmark_drawing_spec=self.mpDraw.DrawingSpec(color=(255,255,255),
-                                                                                   thickness=2, circle_radius=2),
-                                      connection_drawing_spec=self.mpDraw.DrawingSpec(color=(0,255,0),
-                                                                                     thickness=2, circle_radius=2))
-
+                self.mpDraw.draw_landmarks(frame, handslms, self.mpHands.HAND_CONNECTIONS)
                 # Predict gesture
                 prediction = self.model([landmarks])
                 
                 classID = np.argmax(prediction)
                 className = self.classNames[classID]
-            frame, fingers_statuses, count = self.countFingers(frame, result)
+            count = self.countFingers(fingerResult)
 
         # show the prediction on the frame
-        cv2.putText(frame, className + " - " + str(count), (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 
+        cv2.putText(frame, className, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 
                     1, (0,0,255), 2, cv2.LINE_AA)
+        cv2.putText(frame, "Count: " + str(sum(count.values())), (10, 150), cv2.FONT_HERSHEY_SIMPLEX,
+                        1, (0,0,255), 2, cv2.LINE_AA)
 
         # Show the final output
         UiHandler.update(gestureFrame = frame)
