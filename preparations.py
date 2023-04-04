@@ -317,11 +317,17 @@ class Prepare:
             street = self.get_street(self.frame, corners, center)
             if len(street) == 40:
                 break
+            elif not self.useImg:
+                _, self.frame = self.cap.read()
         
         ## get green starting field
-        indexOfGreen = -1
-        while indexOfGreen == -1:
+
+        while True:
             indexOfGreen = self.identify_green_startingfield(self.frame, street)
+            if indexOfGreen != -1:
+                break
+            elif not self.useImg:
+                _, self.frame = self.cap.read()
 
         ## get homefields and endfields
         while True:
@@ -329,6 +335,9 @@ class Prepare:
                                                            street, indexOfGreen)
             if len(homefields) == 4:
                 break
+            elif not self.useImg:
+                _, self.frame = self.cap.read()
+                
         ## create boardgame 
         self.create_boardgame(street, indexOfGreen, homefields, endfields)
 
