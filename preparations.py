@@ -24,28 +24,28 @@ class Prepare:
         """
         source: https://stackoverflow.com/questions/58579072/calculate-the-angle-between-two-lines-2-options-and-efficiency
         """
+        ## calculate angle between three points a, b and c
         ang = math.degrees(math.atan2(c[1]-b[1], c[0]-b[0]) - math.atan2(a[1]-b[1], a[0]-b[0]))
         return ang + 360 if ang < 0 else ang
 
     def get_playground(self, frame):
         ## preprocessing
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        upper_red = np.array([255, 90, 90])
         lower_red = np.array([70, 0, 0])
-        
+        upper_red = np.array([255, 90, 90])
         mask = cv2.inRange(rgb, lower_red, upper_red)
         img_with_mask = cv2.bitwise_and(frame, frame, mask = mask)
         gray_img = cv2.cvtColor(img_with_mask, cv2.COLOR_BGR2GRAY)
 
         ## contour detection
         contours, _ = cv2.findContours(gray_img, 1, 2)
-        # print("Number of contours detected:", len(contours))
 
         if not len(contours) > 0:
-            raise Exception("Could not find a contour")
+            raise Exception("Could not find any contour")
 
-        ## get second largest square (largest could be border of whole image)
-        index, area = sorted([[index, cv2.contourArea(cnt)] for index, cnt in enumerate(contours)], key=lambda c: c[1], reverse=True)[1]
+        ## get second largest square (largest could be border of image)
+        index, _ = sorted([[index, cv2.contourArea(cnt)] for index, cnt in enumerate(contours)],
+                                key=lambda c: c[1], reverse=True)[1]
         cnt = contours[index]
 
         """
@@ -76,40 +76,49 @@ class Prepare:
         return (corners, center)
 
     def detect_circles(self, img, corners, center, minR_factor, maxR_factor, fields):
-        ## detect "street"
-        detected_circles = np.array([])
-        maxNum = 0
-        ## initialize max and min radius with distance relative to the size of the playground
+        detected_circles, maxNum = np.array([]), 0
+
+        ## initialize min and max radius with distance relative to the size of the playground
         minR = round(minR_factor * math.dist(corners[0],center))
         maxR = round(maxR_factor * math.dist(corners[0],center))
+        ## loop till the minimum radius equals 0 or the required amount of circles is found
         while(minR >= 0):
             print(f"radius: {minR} to {maxR}")
-            circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, 1, 50, param1 = 120, param2 = 45, minRadius = minR, maxRadius = maxR)
+            circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, 1, 50,
+                                        param1 = 120, param2 = 45,
+                                        minRadius = minR, maxRadius = maxR)
             if circles is not None:
                 numCircles = circles.shape[1]
                 print(f"found {numCircles} circles")
 
+                ## if the required amount of circles is found, return them
                 if numCircles == fields:
                     detected_circles = np.squeeze(circles, axis=0)
                     break
+                ## else store as many circle as possible for later evaluation
                 elif numCircles > maxNum and numCircles < fields:
                     maxNum = numCircles
                     detected_circles = np.squeeze(circles, axis=0)
             else:
                 print("could not find any circle")
 
+            ## if not all required circles were found, decrease the minimum radius
             minR -= 5
         return detected_circles
 
     def get_street(self, frame, corners, center):
-            ## blur
+            ## preprocessing --> convert to gray for HoughCircles
             blurred = cv2.medianBlur(frame, 7)
-
-            ## convert to gray scale for HoughCircles
             gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
 
-            ## detect "street"
-            detected_circles = self.detect_circles(gray, corners, center, minR_factor=0.044528126006590264, maxR_factor=0.05343375120790832, fields=40)
+            ## find circles in image 
+            ## minR_ and maxR_factor are used to define the radius of the searched circles
+            ## to calculate the factors =>
+            ## radius +- 5 / distance between corner[0] and center of the playing field
+            detected_circles = self.detect_circles(gray, corners, center, 
+                                                   minR_factor=0.044528126006590264, 
+                                                   maxR_factor=0.05343375120790832, 
+                                                   fields=40)
 
             """
             ## show detected fields
@@ -145,7 +154,10 @@ class Prepare:
         gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
 
         ## detect "street"
-        detected_circles = self.detect_circles(gray, corners, center, minR_factor=0.0333960945049427, maxR_factor=0.03784890710560172, fields=32)
+        detected_circles = self.detect_circles(gray, corners, center, 
+                                               minR_factor=0.0333960945049427, 
+                                               maxR_factor=0.03784890710560172, 
+                                               fields=32)
 
         ## order by angle with vector (center->green start)
         green = street[indexOfGreen][1:]
@@ -165,7 +177,9 @@ class Prepare:
 
             endfield = sortedStreet[i:i+4]
             ## sort by distance to center
-            endfield = sorted(endfield, key=lambda c: math.dist(center, (c[1],c[2])), reverse=True)
+            endfield = sorted(endfield,
+                               key=lambda c: math.dist(center, (c[1],c[2])),
+                               reverse=True)
 
             homefield = sortedStreet[i+4:i+8]
             ## top left field is first value and bottom right field is last value
@@ -177,28 +191,31 @@ class Prepare:
             homefields.append(homefield)
             endfields.append(endfield)
 
+        """
+        endfields = np.uint16(np.around(endfields))
+        homefields = np.uint16(np.around(homefields))
 
-        # endfields = np.uint16(np.around(endfields))
-        # homefields = np.uint16(np.around(homefields))
+        for index, color in enumerate(["G","R","B","Y"]):
+            homefield = homefields[index]
+            endfield = endfields[index]
+            for idx, (_, a, b, r) in enumerate(homefield):
+            # a, b, r = pt[1], pt[2], pt[3]
+            # Draw the circumference of the circle.
+                cv2.circle(frame, (a, b), r, (0, 255, 0), 20)
+                # Draw a small circle (of radius 1) to show the center.
+                cv2.putText(frame, f"H_{color}_{idx}", (a, b),
+                  cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
+            for idx, (_, a, b, r) in enumerate(endfield):
+            # a, b, r = pt[1], pt[2], pt[3]
+            # Draw the circumference of the circle.
+                cv2.circle(frame, (a, b), r, (0, 255, 0), 20)
+                # Draw a small circle (of radius 1) to show the center.
+                cv2.putText(frame, f"E_{color}_{idx}", (a, b),
+                  cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
 
-        # for index, color in enumerate(["G","R","B","Y"]):
-        #     homefield = homefields[index]
-        #     endfield = endfields[index]
-        #     for idx, (_, a, b, r) in enumerate(homefield):
-        #     # a, b, r = pt[1], pt[2], pt[3]
-        #     # Draw the circumference of the circle.
-        #         cv2.circle(frame, (a, b), r, (0, 255, 0), 20)
-        #         # Draw a small circle (of radius 1) to show the center.
-        #         cv2.putText(frame, f"H_{color}_{idx}", (a, b), cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
-        #     for idx, (_, a, b, r) in enumerate(endfield):
-        #     # a, b, r = pt[1], pt[2], pt[3]
-        #     # Draw the circumference of the circle.
-        #         cv2.circle(frame, (a, b), r, (0, 255, 0), 20)
-        #         # Draw a small circle (of radius 1) to show the center.
-        #         cv2.putText(frame, f"E_{color}_{idx}", (a, b), cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
-
-        # cv2.imshow("frame", frame)
-        # cv2.waitKey(0)
+        cv2.imshow("frame", frame)
+        cv2.waitKey(0)
+        """
 
         print(f"finished non_street detection with {len(sortedStreet)} fields")
         return homefields, endfields
@@ -207,45 +224,57 @@ class Prepare:
         """
         source: https://stackoverflow.com/questions/61516526/how-to-use-opencv-to-crop-circular-image
         """
+        ## preprocessing
         imgHSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         blurred_houses = cv2.medianBlur(imgHSV, 7)
+
+        ## loop over circles in street list
         for index, (_, x, y, r) in enumerate(street):
+            ## create empty mask
             mask = np.zeros_like(frame, dtype=np.uint8)
+            ## draw circle for current field on mask 
             cv2.circle(mask, (int(x), int(y)), int(r), (255,255,255), -1)
+            ## bitwise_and to leave only pixels inside drawn circle
             mask_area = cv2.bitwise_and(blurred_houses, mask)
             
-            if self.check_color_in_mask(mask_area, [(40, 100, 100), (70,255,255)]): # defines green in HSV
+            ## check if pixels in the HSV color range 40-70 (green) are found in masked area
+            if self.check_color_in_mask(mask_area, [(40, 100, 100), (70,255,255)]):
                 """
                 ## show circle containing the green startingfield
                 # cv2.imwrite("exports/masks/mask_area"+str(index)+".png", mask_area)
-                cv2.imshow("mask", cv2.bitwise_and(cv2.circle(mask, (int(street[index][0]), int(street[index][1])), int(street[index][2]), (255,255,255), -1), frame))
+                cv2.imshow("mask", cv2.bitwise_and(cv2.circle(mask,
+                    (int(street[index][0]),int(street[index][1])),
+                    int(street[index][2]), (255,255,255), -1), frame))
                 cv2.waitKey(0)
                 """
                 print("finished starting field detection")
                 return index
+
         ## return -1 if green wasn't detected
         print("could not identify green starting field")
         return -1
     
     def check_color_in_mask(self, mask, color):
+        ## search for color with inRange
         lower_color = np.array(color[0], dtype=np.uint8)
         upper_color = np.array(color[1], dtype=np.uint8)
         color_mask = cv2.inRange(mask, lower_color, upper_color)
+        ## check if any pixels in specified range were found
         return np.sum(color_mask) > 0
- 
+
     def create_boardgame(self, street, start, homefields, endfields):
         ## create Field objects (streetIndex range [0,39])
         for index, field in enumerate(street[start:] + street[:start]):
             game_logic.fields.append(Field(imgPos = field[1:3],
-                                           figure = None,
-                                           streetIndex = index))
+                                        figure = None,
+                                        streetIndex = index))
         
         ## create Player objects
         startField = 0
         for index, color in enumerate(["green", "red", "black", "yellow"]):
             game_logic.players.append(Player(color = color,
-                                             id = index,
-                                             startField = startField))
+                                            id = index,
+                                            startField = startField))
             
             ## create Figure objects for each player (id range [1,4])
             for figureNum in range(1,5):
@@ -267,10 +296,6 @@ class Prepare:
         game_logic.fields[6].figure = game_logic.players[-1].figures[0]
 
         print("finished boardgame creation")
-
-        # return game_logic
-
-        # return game_logic
 
     def run(self):
         # Grab the latest image from the video feed or frame that has been handed over
@@ -300,7 +325,8 @@ class Prepare:
 
         ## get homefields and endfields
         while True:
-            homefields, endfields = self.get_home_and_end(self.frame, corners, center, street, indexOfGreen)
+            homefields, endfields = self.get_home_and_end(self.frame, corners, center,
+                                                           street, indexOfGreen)
             if len(homefields) == 4:
                 break
         ## create boardgame 
@@ -308,34 +334,39 @@ class Prepare:
 
         ## check if everything was created correctly
         for field in game_logic.fields:
-            print({"imgPos": field.imgPos, "figure": field.figure, "streetIndex": field.streetIndex})
+            print({"imgPos": field.imgPos,
+                    "figure": field.figure,
+                    "streetIndex": field.streetIndex})
         for player in game_logic.players:
-            print({"color": player.color, "startField": player.startField, "finishField": player.finishField})
+            print({"color": player.color,
+                   "startField": player.startField,
+                   "finishField": player.finishField})
         for figure in game_logic.figures:
-            print({"relPos": figure.relPos, "team": figure.player, "item": figure.id})
+            print({"relPos": figure.relPos,
+                   "team": figure.player,
+                   "item": figure.id})
         print("finished preparations")
     
-### testing main
-    
-# if __name__ == "__main__":
+### testing    
+if __name__ == "__main__":
 
-#      useImg = False
+     useImg = False
 
-#      if useImg:
-#          # frame = cv2.imread('brett.png', cv2.IMREAD_COLOR)
-#          # frame = cv2.imread('data/empty.JPG', cv2.IMREAD_COLOR)
-#          frame = cv2.imread('data/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
-#          # frame = cv2.imread('data/wHand.JPG', cv2.IMREAD_COLOR) # <- case that should not work
-#          # frame = cv2.imread('data/w2fieldsCovered.jpg', cv2.IMREAD_COLOR) # <- case that should not work
-#          PrepareHandler = Prepare(frame = frame)
-#      else:
-#          capId = 0
-#          cap = cv2.VideoCapture(capId)
-#          # PrepareHandler = Prepare(capId = capId)
-#          PrepareHandler = Prepare(cap = cap)
+     if useImg:
+         # frame = cv2.imread('brett.png', cv2.IMREAD_COLOR)
+         # frame = cv2.imread('data/empty.JPG', cv2.IMREAD_COLOR)
+         frame = cv2.imread('data/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
+         # frame = cv2.imread('data/wHand.JPG', cv2.IMREAD_COLOR) # <- case that should not work
+         # frame = cv2.imread('data/w2fieldsCovered.jpg', cv2.IMREAD_COLOR) # <- case that should not work
+         PrepareHandler = Prepare(frame = frame)
+     else:
+         capId = 0
+         cap = cv2.VideoCapture(capId)
+         # PrepareHandler = Prepare(capId = capId)
+         PrepareHandler = Prepare(cap = cap)
 
-#      game_logic = PrepareHandler.run()
+     game_logic = PrepareHandler.run()
 
-#      # release the webcam and destroy all active windows
-#      if not useImg:
-#          cv2.VideoCapture(capId).release()
+     # release the webcam and destroy all active windows
+     if not useImg:
+         cv2.VideoCapture(capId).release()

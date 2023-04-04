@@ -59,7 +59,8 @@ def move(p_current_player, p_chosen_figure, p_eye_count, UIHandler):
 
 	if p_chosen_figure.relPos is not None:
 		## remove figure from old field
-		old_absPos = normalize_position(p_player_id=p_current_player.id, p_position=p_chosen_figure.relPos)
+		old_absPos = normalize_position(p_player_id=p_current_player.id, 
+				  						p_position=p_chosen_figure.relPos)
 		fields[old_absPos].figure = None
 	
 	##new relative pos
@@ -68,7 +69,8 @@ def move(p_current_player, p_chosen_figure, p_eye_count, UIHandler):
 	##set field.figure
 	try:
 		##new abs pos
-		absPos = normalize_position(p_player_id=p_current_player.id, p_position=newPos)
+		absPos = normalize_position(p_player_id=p_current_player.id,
+			       					p_position=newPos)
 		
 		kick(absPos, UIHandler)
 

@@ -10,18 +10,27 @@ if __name__ == "__main__":
     # frame = cv2.imread('data/wHand.JPG', cv2.IMREAD_COLOR) # <- case that should not work
     # frame = cv2.imread('data/w2fieldsCovered.jpg', cv2.IMREAD_COLOR) # <- case that should not work
 
-    LogicHandler = Handler(diceId = 0, gestureId = 0, boardId = 0, boardFrame=frame)
-    UIHandler = LogicHandler.UIHandler
+    ## invoke Handler with desired deviceIds for each use case
+    ## also single frame for the board is possible - though only designed for testing
+    cameraDice      = 0
+    cameraGesture   = 0 
+    cameraBoard     = 0
+    LogicHandler = Handler(diceId = cameraDice, 
+                           gestureId = cameraGesture, 
+                           boardId = cameraBoard, 
+                           boardFrame=frame)
 
     while True:
         # status = LogicHandler.current_gesture()
+
+        ## start whole turn of mensch-aergere-dich-nicht 
         status = game_logic.play_whole_turn(LogicHandler)
 
         if cv2.waitKey(1) == ord('q') or status == 1:
             break
 
     # release the webcam and destroy all active windows
-    cv2.VideoCapture(0).release()
-    cv2.VideoCapture(0).release()
-    cv2.VideoCapture(0).release()
+    cv2.VideoCapture(cameraDice).release()
+    cv2.VideoCapture(cameraGesture).release()
+    cv2.VideoCapture(cameraBoard).release()
     cv2.destroyAllWindows()
