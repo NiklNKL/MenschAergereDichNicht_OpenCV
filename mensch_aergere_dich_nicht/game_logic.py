@@ -72,7 +72,8 @@ def move(p_current_player, p_chosen_figure, p_eye_count, UIHandler):
 		
 		kick(absPos, UIHandler)
 
-		fields[absPos].figure = p_chosen_figure
+		field = fields[absPos]
+		field.figure = p_chosen_figure
 		print(f"NewPos: {newPos}")
 		print(f"AbsPos: {absPos}")
 	except IndexError:
@@ -82,7 +83,7 @@ def move(p_current_player, p_chosen_figure, p_eye_count, UIHandler):
 
 	## set figure.relPos
 	print(f"Moved {p_chosen_figure.id} to {newPos}")
-	p_chosen_figure.set_position(newPos)
+	p_chosen_figure.set_position(newPos, field.imgPos, p_current_player.color, p_chosen_figure.id ,UIHandler)
 
 def calculate_new_pos(p_chosen_figure, p_eye_count):
 	newPos = 0
@@ -99,7 +100,7 @@ def kick(absPos, UIHandler):
 	field = fields[absPos]
 	
 	if field.figure is not None:
-		field.figure.set_position(None)
+		field.figure.set_position(None, field.imgPos, field.figure.player.color, field.figure.id, UIHandler)
 		UIHandler.update_text(prompt=f"figure {field.figure} got kicked!")
 
 def normalize_position(p_player_id, p_position):
