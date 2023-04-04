@@ -254,22 +254,21 @@ class Prepare:
                                 id = figureNum)
                 game_logic.figures.append(figure)
                 game_logic.players[-1].figures.append(figure)
+            
+            homefield = homefields[index]
+            endfield = endfields[index]
+
+            game_logic.players[-1].set_homefield(homefield)
+            game_logic.players[-1].set_endfield(endfield)
             startField += 10
         
         ## move yellow's figure 1 to absPos 6 to test kick logic
         game_logic.players[-1].figures[0].set_position(16)
         game_logic.fields[6].figure = game_logic.players[-1].figures[0]
 
-        ## iterate through all players with their respective startfield index
-        for index, player in enumerate(game_logic.players):
-            homefield = homefields[index]
-            endfield = endfields[index]
-
-            player.set_homefield(homefield)
-            player.set_endfield(endfield)
-
-
         print("finished boardgame creation")
+
+        # return game_logic
 
         # return game_logic
 
