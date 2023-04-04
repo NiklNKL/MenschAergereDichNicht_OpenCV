@@ -15,8 +15,9 @@ class Figure:
 	def get_position(self):
 		return self.relPos
 	
-	def set_position(self, p_value):
+	def set_position(self, p_value, coordinates, color, index, UIHandler):
 		self.relPos = p_value
+		UIHandler.highlight_figures(coordinates, color, index)
 	
 	# returns whether the figure is located on a start field
 	def is_start(self):
@@ -45,10 +46,10 @@ class Player:
 
 
 	def set_homefield(self, homefield):
-		self.homefield = [Field(imgPos=(x[1],x[2]), figure=self.figures[id],streetIndex=None) for id, x in enumerate(homefield)]
+		self.homefield = [Field(imgPos=(x[1],x[2],x[3]), figure=self.figures[id],streetIndex=None) for id, x in enumerate(homefield)]
 
 	def set_endfield(self, endfield):
-		self.endfield = [Field(imgPos=(x[1],x[2]), figure=None,streetIndex=None) for x in endfield]
+		self.endfield = [Field(imgPos=(x[1],x[2],x[3]), figure=None,streetIndex=None) for x in endfield]
 
 	# Checks whether there are movable figures on the field
 	def has_movable_figures(self):

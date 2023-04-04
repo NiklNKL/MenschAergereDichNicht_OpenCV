@@ -25,13 +25,14 @@ class Handler():
             else:
                 self.PrepareHandler = Prepare(capId=boardId, frame=boardFrame)
         
-        # initialize game logic
-        self.PrepareHandler.run() 
+        
 
         self.UIHandler = Ui(self.PrepareHandler.frame, #self.PrepareHandler.cap
                             self.DiceHandler.cap, 
-                            self.GestureHandler.cap) 
-
+                            self.GestureHandler.cap)
+        
+        # initialize game logic
+        self.PrepareHandler.run(self.UIHandler) 
     def choose_move(self, available_moves):
         self.UIHandler.update_text(movableFigures = [move[0].id for move in available_moves])
         # return chosen figure object

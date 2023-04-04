@@ -76,3 +76,13 @@ class Ui:
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
             
         self.update(overlay=overlay)
+
+
+    def highlight_figures(self, coordinates, color, idx):
+        frame = self.BoardCap.read()
+        pt1 = (coordinates[0] - coordinates[2], coordinates[1] + coordinates[2])
+        pt2 = (coordinates[0] + coordinates[2], coordinates[1] - coordinates[2])
+        cv2.rectangle(frame, pt1, pt2, (255, 255, 155), 20)
+        # Draw a small circle (of radius 1) to show the center.
+        cv2.putText(frame, f"E_{color}_{idx}", cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
+        self.update(boardFrame=frame)

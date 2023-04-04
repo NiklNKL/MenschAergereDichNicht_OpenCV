@@ -233,10 +233,10 @@ class Prepare:
         color_mask = cv2.inRange(mask, lower_color, upper_color)
         return np.sum(color_mask) > 0
  
-    def create_boardgame(self, street, start, homefields, endfields):
+    def create_boardgame(self, street, start, homefields, endfields, UIHandler):
         ## create Field objects (streetIndex range [0,39])
         for index, field in enumerate(street[start:] + street[:start]):
-            game_logic.fields.append(Field(imgPos = field[1:3],
+            game_logic.fields.append(Field(imgPos = field[1:4],
                                            figure = None,
                                            streetIndex = index))
         
@@ -257,8 +257,8 @@ class Prepare:
             startField += 10
         
         ## move yellow's figure 1 to absPos 6 to test kick logic
-        game_logic.players[-1].figures[0].set_position(16)
-        game_logic.fields[6].figure = game_logic.players[-1].figures[0]
+        #game_logic.players[-1].figures[0].set_position(16)
+        #game_logic.fields[6].figure = game_logic.players[-1].figures[0]
 
         ## iterate through all players with their respective startfield index
         for index, player in enumerate(game_logic.players):
@@ -268,12 +268,14 @@ class Prepare:
             player.set_homefield(homefield)
             player.set_endfield(endfield)
 
+        for figure in game_logic.figures:
+            UIHandler.highlight_figures(figure.player.homefield.imgPos,figure.player.color, figure.id)
 
         print("finished boardgame creation")
 
         # return game_logic
 
-    def run(self):
+    def run(self, UIHandler):
         # Grab the latest image from the video feed or frame that has been handed over
         if not self.useImg:
             frameAvailable, self.frame = self.cap.read()
@@ -305,7 +307,7 @@ class Prepare:
             if len(homefields) == 4:
                 break
         ## create boardgame 
-        self.create_boardgame(street, indexOfGreen, homefields, endfields)
+        self.create_boardgame(street, indexOfGreen, homefields, endfields, UIHandler)
 
         ## check if everything was created correctly
         for field in game_logic.fields:
