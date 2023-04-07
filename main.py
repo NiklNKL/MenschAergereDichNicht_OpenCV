@@ -10,8 +10,8 @@ if __name__ == "__main__":
     # frame = cv2.imread('data/wHand.JPG', cv2.IMREAD_COLOR) # <- case that should not work
     # frame = cv2.imread('data/w2fieldsCovered.jpg', cv2.IMREAD_COLOR) # <- case that should not work
 
-    LogicHandler = Handler(diceId = 0, gestureId = 0, boardId = 0, boardFrame=frame)
-    UIHandler = LogicHandler.UIHandler
+    LogicHandler = Handler(diceId = 0, gestureId = 0, boardId = 0)#, boardFrame=frame)
+    UiHandler = LogicHandler.UiHandler
 
     while True:
         # status = LogicHandler.current_gesture()

@@ -1,5 +1,5 @@
 from preparations import Prepare
-from image_detection import HandGestureRecognizer, DiceDetector
+from image_detection import HandGestureRecognizer, DiceDetector, BoardReader
 from ui import Ui
 import cv2
 
@@ -13,6 +13,7 @@ class Handler():
             cap = cv2.VideoCapture(diceId)
             self.DiceHandler = DiceDetector(capId=diceId, cap=cap)
             self.GestureHandler = HandGestureRecognizer(capId=gestureId, timeThreshold = 2, cap=cap)
+            self.BoardHandler = BoardReader(capId=boardId, cap=cap)
             if boardFrame is None:
                 self.PrepareHandler = Prepare(capId=boardId, cap=cap)
             else:
@@ -20,6 +21,7 @@ class Handler():
         else:
             self.DiceHandler = DiceDetector(capId=diceId)
             self.GestureHandler = HandGestureRecognizer(capId=gestureId, timeThreshold = 2)
+            self.BoardHandler = BoardReader(capId=boardId, cap=cap)
             if boardFrame is None:
                 self.PrepareHandler = Prepare(capId=boardId)
             else:
@@ -27,23 +29,24 @@ class Handler():
         
         
 
-        self.UIHandler = Ui(self.PrepareHandler.frame, #self.PrepareHandler.cap
+        self.UiHandler = Ui(self.BoardHandler.cap, #self.PrepareHandler.frame
                             self.DiceHandler.cap, 
                             self.GestureHandler.cap)
         
         # initialize game logic
-        self.PrepareHandler.run(self.UIHandler) 
+        self.PrepareHandler.run(self.UiHandler) 
     def choose_move(self, available_moves):
-        self.UIHandler.update_text(movableFigures = [move[0].id for move in available_moves])
+        self.UiHandler.update_text(movableFigures = [move[0].id for move in available_moves])
         # return chosen figure object
         return available_moves[0][0]
 
     def get_current_dice(self):
 
         while True:
-            newClass = self.GestureHandler.run(self.UIHandler)
-            newDice = self.DiceHandler.run(self.UIHandler)
+            newClass = self.GestureHandler.run(self.UiHandler)
+            newDice = self.DiceHandler.run(self.UiHandler)
             # print(f"{newClass}  {newDice}")
+            self.BoardHandler.run(self.UiHandler)
             if newDice in range(1,7):
                 if not newClass == self.currentClass and self.currentClass == "thumbs up":
                     self.currentClass = newClass 

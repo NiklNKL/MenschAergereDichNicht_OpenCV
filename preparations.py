@@ -6,7 +6,7 @@ from mensch_aergere_dich_nicht import game_logic, Field, Figure, Player
 class Prepare:
     def __init__(self, capId = None, cap = None, frame = None):
         self.useImg = False
-
+        frame = cv2.imread('data/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
         ## for testing purposes a single frame can be used
         if not frame is None:
             self.frame = frame
@@ -233,7 +233,7 @@ class Prepare:
         color_mask = cv2.inRange(mask, lower_color, upper_color)
         return np.sum(color_mask) > 0
  
-    def create_boardgame(self, street, start, homefields, endfields, UIHandler):
+    def create_boardgame(self, street, start, homefields, endfields, UiHandler):
         ## create Field objects (streetIndex range [0,39])
         for index, field in enumerate(street[start:] + street[:start]):
             game_logic.fields.append(Field(imgPos = field[1:4],
@@ -269,13 +269,14 @@ class Prepare:
             player.set_endfield(endfield)
 
         for figure in game_logic.figures:
-            UIHandler.highlight_figures(figure.player.homefield.imgPos,figure.player.color, figure.id)
+            for count in range(0,4):
+                UiHandler.highlighting(figure.player.homefield[count].imgPos,figure.player.color, figure.id)
 
         print("finished boardgame creation")
 
         # return game_logic
 
-    def run(self, UIHandler):
+    def run(self, UiHandler):
         # Grab the latest image from the video feed or frame that has been handed over
         if not self.useImg:
             frameAvailable, self.frame = self.cap.read()
@@ -307,7 +308,7 @@ class Prepare:
             if len(homefields) == 4:
                 break
         ## create boardgame 
-        self.create_boardgame(street, indexOfGreen, homefields, endfields, UIHandler)
+        self.create_boardgame(street, indexOfGreen, homefields, endfields, UiHandler)
 
         ## check if everything was created correctly
         for field in game_logic.fields:
