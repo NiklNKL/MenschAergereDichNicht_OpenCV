@@ -15,9 +15,9 @@ class Figure:
 	def get_position(self):
 		return self.relPos
 	
-	def set_position(self, p_value, coordinates, color, index, UIHandler):
+	def set_position(self, p_value, coordinates, color, index, UiHandler):
 		self.relPos = p_value
-		UIHandler.highlight_figures(coordinates, color, index)
+		UiHandler.highlighting(coordinates, color, index)
 	
 	# returns whether the figure is located on a start field
 	def is_start(self):
@@ -67,7 +67,7 @@ class Player:
 
 		return False
 	
-	def available_moves(self, p_eye_count):
+	def available_moves(self, p_eye_count, UiHandler):
 		available_figures = []
 		print("Available Moves:")
 		for f in self.figures:
@@ -94,6 +94,14 @@ class Player:
 					if finish_free:
 						print("Figure " + str(f.id) + " (" + str(f.get_position()) + ") available")
 						available_figures.append([f, new_position])
+			
+			#highlighting of all available moves
+			last_figure = available_figures[-1]
+			position = last_figure[1]
+			print(position)
+			coordinates = (position + f.player.id * 10) % 40
+			print(coordinates)
+			UiHandler.highlighting(coordinates, self.color, self.figures.index)
 		
 		return available_figures
 	
