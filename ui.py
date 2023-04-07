@@ -88,7 +88,8 @@ class Ui:
         #width = int(self.boardFrame.get(cv2.CAP_PROP_FRAME_WIDTH))
         #height = int(self.boardFrame.get(cv2.CAP_PROP_FRAME_HEIGHT)) 
 
-        height, width, _ = self.boardFrame.shape
+        # height, width, _ = self.boardFrame.shape
+        height, width, _ = (4672, 7008, 3)
 
         #transfrom coordinates so they fit to the new frame size
         transformedX = coordinates[0] / width * 640

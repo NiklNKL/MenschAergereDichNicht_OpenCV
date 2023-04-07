@@ -24,7 +24,7 @@ def play_whole_turn(LogicHandler) -> int:
 			LogicHandler.UiHandler.update_text(dice=eye_count, turn=turn+1)
 
 			if eye_count == 6:
-				current_turn(LogicHandler, eye_count, LogicHandler.UiHandler)
+				current_turn(LogicHandler, eye_count)
 				break
 
 	while p.has_movable_figures():
@@ -44,10 +44,10 @@ def play_whole_turn(LogicHandler) -> int:
 
 	return status
 
-def current_turn(LogicHandler, eye_count, UiHandler):
+def current_turn(LogicHandler, eye_count):
 	p = players[current_player]
 
-	avail_moves = p.available_moves(eye_count, UiHandler)
+	avail_moves = p.available_moves(eye_count, LogicHandler.UiHandler)
 	if len(avail_moves) > 0: 
 		## Wenn Zug möglich, wähle einen aus
 		chosen_figure = LogicHandler.choose_move(avail_moves)

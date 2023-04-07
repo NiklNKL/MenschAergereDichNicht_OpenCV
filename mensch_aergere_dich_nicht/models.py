@@ -1,3 +1,4 @@
+from mensch_aergere_dich_nicht import game_logic
 
 class Field:
 	def __init__(self, imgPos:tuple, figure, streetIndex:int):
@@ -99,7 +100,8 @@ class Player:
 			last_figure = available_figures[-1]
 			position = last_figure[1]
 			print(position)
-			coordinates = (position + f.player.id * 10) % 40
+			absPos = game_logic.normalize_position(f.player.id, position)
+			coordinates = game_logic.fields[absPos].imgPos
 			print(coordinates)
 			UiHandler.highlighting(coordinates, self.color, self.figures.index)
 		
