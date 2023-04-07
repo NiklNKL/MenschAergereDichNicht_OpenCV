@@ -1,4 +1,4 @@
-from preparations import Prepare
+from mensch_aergere_dich_nicht import game_logic, Field, Figure, Player, game_logic
 from image_detection import HandGestureRecognizer, DiceDetector, BoardReader
 from ui import Ui
 import cv2
@@ -14,27 +14,24 @@ class Handler():
             self.DiceHandler = DiceDetector(capId=diceId, cap=cap)
             self.GestureHandler = HandGestureRecognizer(capId=gestureId, timeThreshold = 2, cap=cap)
             self.BoardHandler = BoardReader(capId=boardId, cap=cap)
-            if boardFrame is None:
-                self.PrepareHandler = Prepare(capId=boardId, cap=cap)
-            else:
-                self.PrepareHandler = Prepare(capId=boardId, frame=boardFrame)
         else:
             self.DiceHandler = DiceDetector(capId=diceId)
             self.GestureHandler = HandGestureRecognizer(capId=gestureId, timeThreshold = 2)
             self.BoardHandler = BoardReader(capId=boardId, cap=cap)
-            if boardFrame is None:
-                self.PrepareHandler = Prepare(capId=boardId)
-            else:
-                self.PrepareHandler = Prepare(capId=boardId, frame=boardFrame)
         
-        
-
         self.UiHandler = Ui(self.BoardHandler.cap, #self.PrepareHandler.frame
                             self.DiceHandler.cap, 
                             self.GestureHandler.cap)
         
-        # initialize game logic
-        self.PrepareHandler.run(self.UiHandler) 
+        # initialize game logic and game objects
+        street, indexOfGreen, homefields, endfields = self.BoardHandler.prepare()
+
+        self.create_boardgame(UiHandler=self.UiHandler,
+                              street=street,
+                              start=indexOfGreen,
+                              homefields=homefields,
+                              endfields=endfields)
+
     def choose_move(self, available_moves):
         self.UiHandler.update_text(movableFigures = [move[0].id for move in available_moves])
         # return chosen figure object
@@ -82,3 +79,51 @@ class Handler():
         cv2.imshow('Current-Turn', self.img)
 
         return status
+
+    def create_boardgame(self, UiHandler, street, start, homefields, endfields):
+        ## create Field objects (streetIndex range [0,39])
+        for index, field in enumerate(street[start:] + street[:start]):
+            game_logic.fields.append(Field(imgPos = field[1:4],
+                                           figure = None,
+                                           streetIndex = index))
+        
+        ## create Player objects
+        startField = 0
+        for index, color in enumerate(["green", "red", "black", "yellow"]):
+            game_logic.players.append(Player(color = color,
+                                             id = index,
+                                             startField = startField))
+            
+            ## create Figure objects for each player (id range [1,4])
+            for figureNum in range(1,5):
+                figure = Figure(relPos = None,
+                                player = game_logic.players[-1],
+                                id = figureNum)
+                game_logic.figures.append(figure)
+                game_logic.players[-1].figures.append(figure)
+            startField += 10
+        
+        ## move yellow's figure 1 to absPos 6 to test kick logic
+        #game_logic.players[-1].figures[0].set_position(16)
+        #game_logic.fields[6].figure = game_logic.players[-1].figures[0]
+
+        ## iterate through all players with their respective startfield index
+        for index, player in enumerate(game_logic.players):
+            homefield = homefields[index]
+            endfield = endfields[index]
+
+            player.set_homefield(homefield)
+            player.set_endfield(endfield)
+
+        for figure in game_logic.figures:
+            for count in range(0,4):
+                UiHandler.highlighting(figure.player.homefield[count].imgPos,figure.player.color, figure.id)
+
+        ## check if everything was created correctly
+        for field in game_logic.fields:
+            print({"imgPos": field.imgPos, "figure": field.figure, "streetIndex": field.streetIndex})
+        for player in game_logic.players:
+            print({"color": player.color, "startField": player.startField, "finishField": player.finishField})
+        for figure in game_logic.figures:
+            print({"relPos": figure.relPos, "team": figure.player, "item": figure.id})
+        print("finished preparations")
