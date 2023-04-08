@@ -2,14 +2,14 @@ import numpy as np
 import cv2
 
 class Ui:
-    def __init__(self, BoardCap, DiceCap, GestureCap) -> None:
+    def __init__(self, board_frame, dice_frame, gesture_frame) -> None:
         self.shape = (640, 360)
 
         self.player, self.dice, self.turn, self.prompt, self.movableFigures = "", "", "", "", ""
         
-        self.boardFrame = cv2.resize(BoardCap.read()[1], self.shape) # read when using VideCapture
-        self.diceFrame = cv2.resize(DiceCap.read()[1], self.shape)
-        self.gestureFrame = cv2.resize(GestureCap.read()[1], self.shape)
+        self.boardFrame = cv2.resize(board_frame, self.shape)
+        self.diceFrame = cv2.resize(dice_frame, self.shape)
+        self.gestureFrame = cv2.resize(gesture_frame, self.shape)
 
         self.boardHighlights = np.zeros_like(self.boardFrame, dtype=np.uint8)
 
@@ -89,7 +89,7 @@ class Ui:
         #height = int(self.boardFrame.get(cv2.CAP_PROP_FRAME_HEIGHT)) 
 
         # height, width, _ = self.boardFrame.shape
-        height, width, _ = (4672, 7008, 3)
+        height, width, _ = (4672, 7008, 3) # use this for test with the image
 
         #transfrom coordinates so they fit to the new frame size
         transformedX = coordinates[0] / width * 640
