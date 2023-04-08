@@ -12,6 +12,9 @@ class DiceDetector:
             self.cap = cap
         else:
             self.cap = cv2.VideoCapture(capId)
+
+        _, self.frame = self.cap.read()
+
         self.detector = cv2.SimpleBlobDetector_create(self._get_blob_detector_params())
     
     def _get_blob_detector_params(self):
@@ -87,11 +90,11 @@ class DiceDetector:
 
     def run(self, UiHandler):
         # Grab the latest image from the video feed
-        ret, frame = self.cap.read()
+        _, self.frame = self.cap.read()
 
-        blobs = self.get_blobs(frame)
+        blobs = self.get_blobs(self.frame)
         dice = self.get_dice_from_blobs(blobs)
-        out_frame = self.overlay_info(frame, dice, blobs) 
+        out_frame = self.overlay_info(self.frame, dice, blobs) 
         UiHandler.update(diceFrame = out_frame)
         # cv2.imshow("frame", out_frame)
 
