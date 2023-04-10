@@ -123,7 +123,7 @@ class Handler():
 
         for figure in self.GameHandler.figures:
             for count in range(0,4):
-                UiHandler.highlighting(figure.player.homefields[count].imgPos,figure.player.color, figure.id)
+                UiHandler.highlighting(figure.player.homefields[count].imgPos,figure.player.color, figure.id, "white")
 
         ## check if everything was created correctly
         for field in self.GameHandler.fields:

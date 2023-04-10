@@ -82,7 +82,7 @@ class Ui:
         self.update(overlay=self.overlay)
 
 
-    def highlighting(self, coordinates, color, idx):
+    def highlighting(self, coordinates, color, idx, highlithing_color):
         
         #get the original dimensions of the video feed
         #width = int(self.boardFrame.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -109,9 +109,13 @@ class Ui:
         pt2 = (int(transformedX + transformedRadius), int(transformedY - transformedRadius))
 
         #draw a rectangle
-        self.boardHighlights = cv2.rectangle(self.boardHighlights, pt1, pt2, (255, 255, 255), 5)
+
+        if(highlithing_color == "green"):
+            self.boardHighlights = cv2.rectangle(self.boardHighlights, pt1, pt2, (0, 255, 0), 5)
+        else: 
+            self.boardHighlights = cv2.rectangle(self.boardHighlights, pt1, pt2, (255, 255, 255), 5)
         #Put text with the Figure color and id next to the rectangle
-        cv2.putText(self.boardHighlights, f"Figure_{color}_{idx}",pt2, cv2.FONT_HERSHEY_COMPLEX, 2, (255, 255, 255), 5)
+        cv2.putText(self.boardHighlights, f"Figure_{color}_{idx}",pt2, cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 5)
         #cv2.imshow("test", self.boardHighlights)
         #self.update(boardFrame=frame)
 
