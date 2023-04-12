@@ -105,6 +105,8 @@
 
 
 import cv2
+import numpy as np
+from collections import deque
 
 class DiceDetector:
     def __init__(self, capId, cap = None):
@@ -114,7 +116,10 @@ class DiceDetector:
         else:
             self.cap = cv2.VideoCapture(capId)
         self.detector = cv2.SimpleBlobDetector_create(self._get_blob_detector_params())
-    
+
+        self.counter = 0
+        self.readings = deque([0, 0], maxlen=10)
+        self.display = deque([0, 0], maxlen=10)
     def _get_blob_detector_params(self):
 
         params = cv2.SimpleBlobDetector_Params()
@@ -130,42 +135,65 @@ class DiceDetector:
         return(params)
 
 
-    def get_dice(self, img):
-        edges = cv2.Canny(img,100,500)
+    # def get_dice(self, img):
+    #     edges = cv2.Canny(img,100,500)
     
-        die_contours,_ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        total_number_dots = 0
-        for die_roi in die_contours:
-            (die_x,die_y,die_w, die_h) = cv2.boundingRect(die_roi)
-            if die_w > 100 and die_h > 100:
-                die_img = img[die_y:die_y+die_h,die_x:die_x+die_w]
+    #     die_contours,_ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #     total_number_dots = 0
+    #     for die_roi in die_contours:
+    #         (die_x,die_y,die_w, die_h) = cv2.boundingRect(die_roi)
+    #         if die_w > 100 and die_h > 100:
+    #             die_img = img[die_y:die_y+die_h,die_x:die_x+die_w]
                 
-                dots = self.detector.detect(die_img)
+    #             dots = self.detector.detect(die_img)
 
-                number_dots = 0
-                if dots is not None:
-                    # loop through all dot regions of interest found
-                    for dot_roi in dots:
-                        number_dots += 1
-                        # sind noch nich an der richtigen position
-                        # img = cv2.drawKeypoints(img, dots, np.array([]), (0, 0, 255),cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-                    total_number_dots += number_dots
+    #             number_dots = 0
+    #             if dots is not None:
+    #                 # loop through all dot regions of interest found
+    #                 for dot_roi in dots:
+    #                     number_dots += 1
+    #                     # sind noch nich an der richtigen position
+    #                     # img = cv2.drawKeypoints(img, dots, np.array([]), (0, 0, 255),cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    #                 total_number_dots += number_dots
 
-                    if number_dots != 0:
-                        cv2.drawContours(img, [die_roi], 0, (0,255,0), 3)
-                        bbox = cv2.boundingRect(die_roi)
-                        img = cv2.putText(img,str(number_dots),
-                                        (bbox[0]+bbox[2]+5,bbox[1]+bbox[3]//2),
-                                        cv2.FONT_HERSHEY_SIMPLEX,1.5,(0,0,255),3)
-        return img
+    #                 if number_dots != 0:
+    #                     cv2.drawContours(img, [die_roi], 0, (0,255,0), 3)
+    #                     bbox = cv2.boundingRect(die_roi)
+    #                     img = cv2.putText(img,str(number_dots),
+    #                                     (bbox[0]+bbox[2]+5,bbox[1]+bbox[3]//2),
+    #                                     cv2.FONT_HERSHEY_SIMPLEX,1.5,(0,0,255),3)
+    #     return img
 
+    def get_dots(self, frame):
+        keypoints = self.detector.detect(frame)
+        im_with_keypoints = cv2.drawKeypoints(frame, keypoints, np.array([]), (0, 0, 255),
+                                          cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+
+        if self.counter % 10 == 0:                                   # enter this block every 10 frames.
+            self.reading = len(keypoints)                            # 'reading' counts the number of keypoints (pips).
+            self.readings.append(self.reading)                            # record the reading from this frame.
+    
+            if self.readings[-1] == self.readings[-2] == self.readings[-3]:    # if the last 3 readings are the same...
+                self.display.append(self.readings[-1])                    # ... then we have a valid reading.
+    
+            # if the most recent valid reading has changed, and it's something other than zero, then print it.
+            # if self.display[-1] != self.display[-2] and self.display[-1] != 0:
+            #     print("im in")
+            #     print(self.display[-1])
+            #     # return im_with_keypoints, self.display[-1]
+            
+        self.counter += 1    
+        return im_with_keypoints, self.display[-1]
+    
+        
 
     def run(self, UiHandler):
         # Grab the latest image from the video feed
         ret, frame = self.cap.read()
 
        
-        out_frame = self.get_dice(frame)
+        #out_frame = self.get_dice(frame)
+        out_frame, number = self.get_dots(frame)
         
         UiHandler.update(diceFrame = out_frame)
         # cv2.imshow("frame", out_frame)
@@ -175,4 +203,5 @@ class DiceDetector:
         #     return 6
         #     return dice[0][0]
         # else:
-        return 0
+        return 6
+        # return number-1 # -1 ist nur für Xsplit wichtig, da er sonst das Wasserzeichen als Dot erkennt

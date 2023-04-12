@@ -9,7 +9,7 @@ min_area = 100                          # ... focus, brightness, etc.
 min_circularity = 0.3
 min_inertia_ratio = 0.5
  
-cap = cv2.VideoCapture(0)               # '0' is the webcam's ID. usually it's 0/1/2/3/etc. 'cap' is the video object.
+cap = cv2.VideoCapture(2)               # '0' is the webcam's ID. usually it's 0/1/2/3/etc. 'cap' is the video object.
 cap.set(15, -4)                         # '15' references video's exposure. '-4' sets it.
  
 counter = 0                             # script will use a counter to handle FPS.

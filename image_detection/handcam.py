@@ -60,7 +60,6 @@ class HandGestureRecognizer:
             self.currentClass = current_value
         
         # Speichere die letzte Aktualisierungszeit
-
     def countFingers(self, results):
     
         # Initialize a dictionary to store the count of fingers of both hands.

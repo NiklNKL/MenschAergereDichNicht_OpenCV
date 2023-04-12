@@ -1,5 +1,5 @@
 from preparations import Prepare
-from image_detection import HandGestureRecognizer, DiceDetector
+from image_detection import HandGestureRecognizer, DiceDetector, FingerCounter
 from ui import Ui
 import cv2
 
@@ -19,7 +19,9 @@ class Handler():
                 self.PrepareHandler = Prepare(capId=boardId, frame=boardFrame)
         else:
             self.DiceHandler = DiceDetector(capId=diceId)
-            self.GestureHandler = HandGestureRecognizer(capId=gestureId, timeThreshold = 2)
+            cap = cv2.VideoCapture(gestureId)
+            self.GestureHandler = HandGestureRecognizer(capId=gestureId, timeThreshold = 2, cap=cap)
+            self.FingerHandler = FingerCounter(capId=gestureId, timeThreshold=1, cap=cap)
             if boardFrame is None:
                 self.PrepareHandler = Prepare(capId=boardId)
             else:
@@ -32,10 +34,29 @@ class Handler():
                             self.DiceHandler.cap, 
                             self.GestureHandler.cap) 
 
+    # def choose_move(self, available_moves):
+    #     self.UIHandler.update_text(movableFigures = [move[0].id for move in available_moves])
+    #     # return chosen figure object
+    #     return available_moves[0][0]
+
     def choose_move(self, available_moves):
         self.UIHandler.update_text(movableFigures = [move[0].id for move in available_moves])
-        # return chosen figure object
-        return available_moves[0][0]
+        while True:
+            newClass = self.GestureHandler.run(self.UIHandler)
+            newCount = self.FingerHandler.run()
+            #print(f"{newClass}  {newCount}")
+            if newCount != 0:
+                if not newClass == self.currentClass and self.currentClass == "thumbs up":
+                    self.currentClass = newClass 
+                elif newClass == "thumbs up" and not self.currentClass == "thumbs up":
+                    self.currentClass = newClass
+                    print(f"retreived {newCount}")
+                    break
+            # needed to show video feed constantly
+            if cv2.waitKey(1) == ord('q'):
+                raise Exception("get_current_count was cancelled")
+            
+        return available_moves[newCount-1][0]
 
     def get_current_dice(self):
 
