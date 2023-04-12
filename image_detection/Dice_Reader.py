@@ -189,12 +189,12 @@ class DiceDetector:
 
     def run(self, UiHandler):
         # Grab the latest image from the video feed
-        ret, frame = self.cap.read()
-
-       
+        _, self.frame = self.cap.read()
+  
         #out_frame = self.get_dice(frame)
         out_frame, number = self.get_dots(frame)
         
+
         UiHandler.update(diceFrame = out_frame)
         # cv2.imshow("frame", out_frame)
 

@@ -18,6 +18,9 @@ class HandGestureRecognizer:
             self.cap = cap
         else:
             self.cap = cv2.VideoCapture(capId)
+
+        _, self.frame = self.cap.read()
+
         self.timeThreshold = timeThreshold
 
         # initialize mediapipe
@@ -118,13 +121,13 @@ class HandGestureRecognizer:
 
     def run(self, UiHandler):
         # Read each frame from the webcam
-        _, frame = self.cap.read()
+        _, self.frame = self.cap.read()
 
-        x, y, c = frame.shape
+        x, y, c = self.frame.shape
 
         # Flip the frame vertically
-        frame = cv2.flip(frame, 1)
-        framergb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        self.frame = cv2.flip(self.frame, 1)
+        framergb = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
 
         # Get hand landmark prediction
         result = self.hands.process(framergb)
@@ -145,6 +148,7 @@ class HandGestureRecognizer:
 
                 # Drawing landmarks on frames
                 self.mpDraw.draw_landmarks(frame, handslms, self.mpHands.HAND_CONNECTIONS)
+
                 # Predict gesture
                 prediction = self.model([landmarks])
                 
@@ -153,13 +157,13 @@ class HandGestureRecognizer:
             count = self.countFingers(fingerResult)
 
         # show the prediction on the frame
-        cv2.putText(frame, className, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 
+        cv2.putText(self.frame, className, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 
                     1, (0,0,255), 2, cv2.LINE_AA)
         cv2.putText(frame, "Count: " + str(sum(count.values())), (10, 150), cv2.FONT_HERSHEY_SIMPLEX,
                         1, (0,0,255), 2, cv2.LINE_AA)
 
         # Show the final output
-        UiHandler.update(gestureFrame = frame)
+        UiHandler.update(gestureFrame = self.frame)
         # cv2.imshow("Output", frame)
         
         self.update_class(className)
