@@ -5,7 +5,6 @@ import cv2
 if __name__ == "__main__":
     GameHandler = Game()
     LogicHandler = Handler(diceId = 0, gestureId = 0, boardId = 0, game=GameHandler)
-    UiHandler = LogicHandler.UiHandler
 
     while True:
         # status = LogicHandler.current_gesture()

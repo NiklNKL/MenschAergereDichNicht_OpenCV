@@ -104,7 +104,7 @@ class HandGestureRecognizer:
                 self.mpDraw.draw_landmarks(self.frame, handslms, self.mpHands.HAND_CONNECTIONS)
 
                 # Predict gesture
-                prediction = self.model.predict([landmarks], verbose=0)
+                prediction = self.model([landmarks])
                 
                 classID = np.argmax(prediction)
                 className = self.classNames[classID]

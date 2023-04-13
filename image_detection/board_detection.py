@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import math
-from ui import Ui
+from ui import Ui 
 
 
 class BoardReader():
