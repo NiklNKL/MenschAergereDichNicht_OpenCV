@@ -9,19 +9,22 @@ import tensorflow as tf
 from tensorflow import keras
 from keras.models import load_model
 from time import time
+import threading
 
-class HandReader:
+class HandReader(threading.Thread):
     def __init__(self, capId, timeThreshold, confidence = 0.7, cap = None, videoFeed = "gesture"):
         
+        threading.Thread.__init__(self)
         # Initialising of the videocapture
         if not cap == None:
             self.cap = cap
         else:
             self.cap = cv2.VideoCapture(capId)
 
-        _, self.frame = self.cap.read()
+        _, self.temp_frame = self.cap.read()
+        self.frame = self.temp_frame
 
-        self.x , self.y, self.c = self.frame.shape
+        self.x , self.y, self.c = self.temp_frame.shape
 
         # Variable for gesture or counter stream
         self.videoFeed = videoFeed
@@ -56,6 +59,13 @@ class HandReader:
         self.previousCount = ''
         self.count_time_without_change = 0
         self.count_last_update_time = time()
+
+        self.prev_frame_time = 0
+        self.new_frame_time = 0
+
+        self.initialized = False
+
+        self._stop_event = threading.Event()
 
     def countFingers(self, results):
     
@@ -303,34 +313,52 @@ class HandReader:
             
             # Speichere die letzte Aktualisierungszeit
     
-    def run(self, UiHandler, videoFeed="gesture"):
+    def stop(self):
+        self._stop_event.set()
 
-        self.videoFeed = videoFeed
-        # Initialize the webcam for Hand Gesture Recognition Python proje
-        _, frame = self.cap.read()
-        self.x , self.y, self.c = frame.shape
+    def stopped(self):
+        return self._stop_event.is_set()
 
-        # Flip the frame vertically
-        frame = cv2.flip(frame, 1)
 
-        framergb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        # Get hand landmark prediction
-        result = self.hands.process(framergb)
-        fingerResult = self.finger.process(framergb)
+    def run(self, videoFeed="gesture"):
+        while True:
+            self.videoFeed = videoFeed
+            # Initialize the webcam for Hand Gesture Recognition Python proje
+            _, self.temp_frame = self.cap.read()
+            self.x , self.y, self.c = self.temp_frame.shape
 
-        className = ''
-        count = -1
+            # Flip the frame vertically
+            self.temp_frame = cv2.flip(self.temp_frame, 1)
 
-        if self.videoFeed == "gesture":
-            className, newFrame = self.getGesture(result, frame)
-            self.update_class(className)
-            cv2.putText(newFrame, "Detected Gesture: " + self.currentClass, (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                             1, (0,0,255), 2, cv2.LINE_AA)
-        elif self.videoFeed == "counter":
-            count, newFrame = self.getFingers(fingerResult, frame)
-            self.update_count(count)
-            cv2.putText(newFrame, "Detected Count: " + str(self.currentCount), (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                             1, (0,0,255), 2, cv2.LINE_AA)
+            framergb = cv2.cvtColor(self.temp_frame, cv2.COLOR_BGR2RGB)
+            # Get hand landmark prediction
+            result = self.hands.process(framergb)
+            fingerResult = self.finger.process(framergb)
 
-        UiHandler.update(handFrame = newFrame)
-        return self.currentClass, self.currentCount
+            className = ''
+            count = -1
+
+            if self.videoFeed == "gesture":
+                className, self.temp_frame = self.getGesture(result, self.temp_frame)
+                self.update_class(className)
+
+                self.new_frame_time = time()
+                fps = 1/(self.new_frame_time-self.prev_frame_time)
+                self.prev_frame_time = self.new_frame_time
+                fps = int(fps)
+                fps = str(fps)
+                cv2.putText(self.temp_frame, fps, (10, 700), cv2.FONT_HERSHEY_SIMPLEX, 3, (100, 255, 0), 3, cv2.LINE_AA)
+
+                cv2.putText(self.temp_frame, "Detected Gesture: " + self.currentClass, (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                                1, (0,0,255), 2, cv2.LINE_AA)
+                
+            elif self.videoFeed == "counter":
+                count, self.temp_frame = self.getFingers(fingerResult, self.temp_frame)
+                self.update_count(count)
+                cv2.putText(self.temp_frame, "Detected Count: " + str(self.currentCount), (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                                1, (0,0,255), 2, cv2.LINE_AA)
+            self.frame = self.temp_frame
+            # UiHandler.update(handFrame = self.frame)
+            self.initialized = True
+            if self.stopped():
+                break

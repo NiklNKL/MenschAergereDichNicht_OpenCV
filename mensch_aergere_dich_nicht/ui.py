@@ -1,51 +1,74 @@
 import numpy as np
 import cv2
+import threading
+import time
 
-class Ui:
-    def __init__(self, board_frame, dice_frame, hand_frame) -> None:
+class Ui(threading.Thread):
+    def __init__(self, game_thread, dice_thread, hand_thread, board_thread) -> None:
+
+        threading.Thread.__init__(self)
+        self._stop_event = threading.Event()
+
         self.shape = (640, 360)
 
-        self.player, self.dice, self.turn, self.prompt, self.movableFigures = "", "", "", "", ""
+        self.player, self.dice, self.turn, self.prompt, self.movable_figures = "", "", "", "", ""
         
-        self.boardFrame = cv2.resize(board_frame, self.shape)
-        self.diceFrame = cv2.resize(dice_frame, self.shape)
-        self.handFrame = cv2.resize(hand_frame, self.shape)
+        self.game_thread = game_thread
+        self.dice_thread = dice_thread
+        self.hand_thread = hand_thread
+        self.board_thread = board_thread
 
-        self.boardHighlights = np.zeros_like(self.boardFrame, dtype=np.uint8)
+        self.board_frame = self.board_thread.frame
+        self.dice_frame = self.dice_thread.frame
+        self.hand_frame = self.hand_thread.frame
+        self.overlay_frame = np.zeros((self.shape[1], self.shape[0], 3), np.uint8)
+
+        self.board_frame = cv2.resize(self.board_thread.frame, self.shape)
+        self.dice_frame = cv2.resize(self.dice_thread.frame, self.shape)
+        self.hand_frame = cv2.resize(self.hand_thread.frame, self.shape)
+        self.overlay_frame = cv2.resize(self.overlay_frame, self.shape)
+
+        self.board_highlights = np.zeros_like(self.board_frame, dtype=np.uint8)
 
         ## create two horizontal stacks
         ## first stacks contains empty frame as background for game status
-        overlay = np.zeros((self.shape[1], self.shape[0], 3), np.uint8)
-        self.numpy_horizontal_upper = np.hstack((overlay, self.boardFrame))
-        self.numpy_horizontal_lower = np.hstack((self.diceFrame, self.handFrame))
-        self.update_text()
-        self.stream = np.vstack((self.numpy_horizontal_upper, self.numpy_horizontal_lower))
+        
 
-    def update(self, overlay=None, boardFrame=None, diceFrame=None, handFrame=None):
+        # self.numpy_horizontal_upper = np.hstack((self.overlay_frame, self.board_frame))
+        # self.numpy_horizontal_lower = np.hstack((self.dice_frame, self.hand_frame))
+        # self.update_text()
+        # self.stream = np.vstack((self.numpy_horizontal_upper, self.numpy_horizontal_lower))
+
+    def update(self):
+
+        self.board_frame = cv2.resize(self.board_thread.frame, self.shape)
+        self.dice_frame = cv2.resize(self.dice_thread.frame, self.shape)
+        self.hand_frame = cv2.resize(self.hand_thread.frame, self.shape)
+        self.overlay_frame = cv2.resize(self.overlay_frame, self.shape)
         ## update only frame that was handed over
 
         ## upper horizontal
-        if overlay is not None:
-            self.overlay = cv2.resize(overlay, self.shape)
-            self.numpy_horizontal_upper = np.hstack((self.overlay, self.boardFrame))
-        elif boardFrame is not None:
-            boardFrame = cv2.resize(boardFrame, self.shape)
-            self.boardFrame = cv2.bitwise_or(boardFrame, self.boardHighlights)
-            self.numpy_horizontal_upper = np.hstack((self.overlay, self.boardFrame))
+        if self.overlay_frame is not None:
+            self.overlay_frame = cv2.resize(self.overlay_frame, self.shape)
+            self.numpy_horizontal_upper = np.hstack((self.overlay_frame, self.board_frame))
+        if self.board_thread.frame is not None:
+            self.board_frame = cv2.resize(self.board_thread.frame, self.shape)
+            self.board_frame = cv2.bitwise_or(self.board_frame, self.board_highlights)
+            self.numpy_horizontal_upper = np.hstack((self.overlay_frame, self.board_frame))
 
         ## lower
-        elif diceFrame is not None:
-            self.diceFrame = cv2.resize(diceFrame, self.shape)
-            self.numpy_horizontal_lower = np.hstack((self.diceFrame, self.handFrame))
-        elif handFrame is not None:
-            self.handFrame = cv2.resize(handFrame, self.shape)
-            self.numpy_horizontal_lower = np.hstack((self.diceFrame, self.handFrame))
+        if self.dice_thread.frame is not None:
+            self.dice_frame = cv2.resize(self.dice_thread.frame, self.shape)
+            self.numpy_horizontal_lower = np.hstack((self.dice_frame, self.hand_frame))
+        if self.hand_thread.frame is not None:
+            self.hand_frame = cv2.resize(self.hand_thread.frame, self.shape)
+            self.numpy_horizontal_lower = np.hstack((self.dice_frame, self.hand_frame))
 
         ## stack vertically
         self.stream = np.vstack((self.numpy_horizontal_upper, self.numpy_horizontal_lower))
-        cv2.imshow("Result", self.stream)
+        cv2.imshow("Mensch_aergere_dich_nicht", self.stream)
 
-    def update_text(self, player=None, turn=None, dice=None, movableFigures=None, prompt=""):
+    def update_text(self, player=None, turn=None, dice=None, movable_figures=None, prompt=""):
         ## reset current content
         self.overlay = np.zeros((self.shape[1], self.shape[0], 3), np.uint8)
         
@@ -56,35 +79,50 @@ class Ui:
             self.turn = turn
         if dice is not None:
             self.dice = dice
-        if movableFigures is not None:
-            self.movableFigures = movableFigures
+        if movable_figures is not None:
+            self.movable_figures = movable_figures
 
-        cv2.putText(self.overlay, 
+        cv2.putText(self.overlay_frame, 
                     f"Player: {self.player}",
                     (50,50),
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
 
-        cv2.putText(self.overlay, 
+        cv2.putText(self.overlay_frame, 
                     f"Current turn: {self.turn}",
                     (50,100),
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
         
-        cv2.putText(self.overlay, 
+        cv2.putText(self.overlay_frame, 
                     f"Current dice: {self.dice}",
                     (50,150),
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
         
-        cv2.putText(self.overlay, 
-                    f"Movable figures: {movableFigures}",
+        cv2.putText(self.overlay_frame, 
+                    f"Movable figures: {movable_figures}",
                     (50,200),
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
 
-        cv2.putText(self.overlay, 
+        cv2.putText(self.overlay_frame, 
                     f"{prompt}",
                     (50,250),
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
             
-        self.update(overlay=self.overlay)
+        self.update()
+    
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
+    def run(self):
+        while True:
+            t = 1/60
+            time.sleep(t)
+            self.update()
+            if self.stopped():
+                break
+
 
     # def highlighting(self, coordinates, idx, highlighting_color):
         

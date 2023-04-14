@@ -4,19 +4,34 @@
 import cv2
 import numpy as np
 from sklearn import cluster
+import threading
+from time import time
 
-class DiceReader:
+class DiceReader(threading.Thread):
     def __init__(self, capId, cap = None):
+
+        threading.Thread.__init__(self)
         # Initialize the webcam 
         if not cap == None:
             self.cap = cap
         else:
             self.cap = cv2.VideoCapture(capId)
 
-        _, self.frame = self.cap.read()
+        _, self.temp_frame = self.cap.read()
 
         self.detector = cv2.SimpleBlobDetector_create(self._get_blob_detector_params())
-    
+
+        self.dice = 0
+
+        self.initialized = False
+
+        self.frame =  self.temp_frame
+
+        self.prev_frame_time = 0
+        self.new_frame_time = 0
+
+        self._stop_event = threading.Event()
+
     def _get_blob_detector_params(self):
 
         params = cv2.SimpleBlobDetector_Params()
@@ -31,7 +46,6 @@ class DiceReader:
         blobs = self.detector.detect(frame_gray)
 
         return blobs
-
 
     def get_dice_from_blobs(self, blobs):
         # Get centroids of all blobs
@@ -66,7 +80,6 @@ class DiceReader:
         else:
             return []
 
-
     def overlay_info(self, frame, dice, blobs):
         # Overlay blobs
         for b in blobs:
@@ -88,19 +101,32 @@ class DiceReader:
                         cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 2)
         return frame
 
-    def run(self, UiHandler):
-        # Grab the latest image from the video feed
-        _, self.frame = self.cap.read()
+    def stop(self):
+        self._stop_event.set()
 
-        blobs = self.get_blobs(self.frame)
-        dice = self.get_dice_from_blobs(blobs)
-        out_frame = self.overlay_info(self.frame, dice, blobs) 
-        UiHandler.update(diceFrame = out_frame)
-        # cv2.imshow("frame", out_frame)
+    def stopped(self):
+        return self._stop_event.is_set()
 
-        if len(dice) > 0:
-            # print(dice[0][0])
-            return 6
-            return dice[0][0]
-        else:
-            return 0
+    def run(self):
+        while True:
+            # Grab the latest image from the video feed
+            _, self.temp_frame = self.cap.read()
+
+            blobs = self.get_blobs(self.temp_frame)
+            self.dice = self.get_dice_from_blobs(blobs)
+            self.temp_frame = self.overlay_info(self.temp_frame, self.dice, blobs)
+
+            self.new_frame_time = time()
+            fps = 1/(self.new_frame_time-self.prev_frame_time)
+            self.prev_frame_time = self.new_frame_time
+            fps = int(fps)
+            fps = str(fps)
+            cv2.putText(self.temp_frame, fps, (10, 700), cv2.FONT_HERSHEY_SIMPLEX, 3, (100, 255, 0), 3, cv2.LINE_AA)
+
+            self.frame = self.temp_frame
+
+            self.initialized = True
+
+            if self.stopped():
+                break
+       
