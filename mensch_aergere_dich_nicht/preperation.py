@@ -1,29 +1,29 @@
 from game_objects import Field, Figure, Player
 from game import Game
-from image_detection import GestureReader, DiceReader, BoardReader
+from image_detection import HandReader, DiceReader, BoardReader
 from ui import Ui
 import cv2
 
 class Preperation():
-    def __init__(self, diceId, gestureId, boardId, game: Game) -> None:
+    def __init__(self, diceId, handId, boardId, game: Game) -> None:
         self.currentClass = ""
         self.currentDice = 0
         self.turn_number = 0
         self.GameHandler = game
 
-        if diceId == gestureId == boardId:
+        if diceId == handId == boardId:
             cap = cv2.VideoCapture(diceId)
             self.DiceHandler = DiceReader(capId=diceId, cap=cap)
-            self.GestureHandler = GestureReader(capId=gestureId, timeThreshold = 2, cap=cap)
+            self.HandHandler = HandReader(capId=handId, timeThreshold = 2, cap=cap)
             self.BoardHandler = BoardReader(cap=cap, useImg=True)
         else:
             self.DiceHandler = DiceReader(capId=diceId)
-            self.GestureHandler = GestureReader(capId=gestureId, timeThreshold = 2)
+            self.HandHandler = HandReader(capId=handId, timeThreshold = 2)
             self.BoardHandler = BoardReader(capId=boardId, useImg=True)
         
         self.UiHandler = Ui(self.BoardHandler.frame,
                             self.DiceHandler.frame, 
-                            self.GestureHandler.frame)
+                            self.HandHandler.frame)
         
         # initialize game logic and game objects
         street, indexOfGreen, homefields, endfields = self.BoardHandler.prepare()
@@ -42,7 +42,7 @@ class Preperation():
     def get_current_dice(self):
 
         while True:
-            newClass = self.GestureHandler.run(self.UiHandler)
+            newClass = self.HandHandler.run(self.UiHandler, "gesture")
             newDice = self.DiceHandler.run(self.UiHandler)
             # print(f"{newClass}  {newDice}")
             self.BoardHandler.run(self.UiHandler)
@@ -61,7 +61,7 @@ class Preperation():
         return newDice
 
     def current_gesture(self):
-        newClass = self.GestureHandler.run()
+        newClass = self.HandHandler.run()
         newDice = self.DiceHandler.run()
         status = 0
 

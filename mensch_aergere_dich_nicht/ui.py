@@ -2,14 +2,14 @@ import numpy as np
 import cv2
 
 class Ui:
-    def __init__(self, board_frame, dice_frame, gesture_frame) -> None:
+    def __init__(self, board_frame, dice_frame, hand_frame) -> None:
         self.shape = (640, 360)
 
         self.player, self.dice, self.turn, self.prompt, self.movableFigures = "", "", "", "", ""
         
         self.boardFrame = cv2.resize(board_frame, self.shape)
         self.diceFrame = cv2.resize(dice_frame, self.shape)
-        self.gestureFrame = cv2.resize(gesture_frame, self.shape)
+        self.handFrame = cv2.resize(hand_frame, self.shape)
 
         self.boardHighlights = np.zeros_like(self.boardFrame, dtype=np.uint8)
 
@@ -17,11 +17,11 @@ class Ui:
         ## first stacks contains empty frame as background for game status
         overlay = np.zeros((self.shape[1], self.shape[0], 3), np.uint8)
         self.numpy_horizontal_upper = np.hstack((overlay, self.boardFrame))
-        self.numpy_horizontal_lower = np.hstack((self.diceFrame, self.gestureFrame))
+        self.numpy_horizontal_lower = np.hstack((self.diceFrame, self.handFrame))
         self.update_text()
         self.stream = np.vstack((self.numpy_horizontal_upper, self.numpy_horizontal_lower))
 
-    def update(self, overlay=None, boardFrame=None, diceFrame=None, gestureFrame=None):
+    def update(self, overlay=None, boardFrame=None, diceFrame=None, handFrame=None):
         ## update only frame that was handed over
 
         ## upper horizontal
@@ -36,10 +36,10 @@ class Ui:
         ## lower
         elif diceFrame is not None:
             self.diceFrame = cv2.resize(diceFrame, self.shape)
-            self.numpy_horizontal_lower = np.hstack((self.diceFrame, self.gestureFrame))
-        elif gestureFrame is not None:
-            self.gestureFrame = cv2.resize(gestureFrame, self.shape)
-            self.numpy_horizontal_lower = np.hstack((self.diceFrame, self.gestureFrame))
+            self.numpy_horizontal_lower = np.hstack((self.diceFrame, self.handFrame))
+        elif handFrame is not None:
+            self.handFrame = cv2.resize(handFrame, self.shape)
+            self.numpy_horizontal_lower = np.hstack((self.diceFrame, self.handFrame))
 
         ## stack vertically
         self.stream = np.vstack((self.numpy_horizontal_upper, self.numpy_horizontal_lower))
