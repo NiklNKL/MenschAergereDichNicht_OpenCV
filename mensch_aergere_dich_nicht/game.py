@@ -25,7 +25,7 @@ class Game:
 				if eye_count == 6:
 					self.current_turn(LogicHandler, eye_count)
 					break
-
+		
 		while p.has_movable_figures():
 			try:
 				eye_count = LogicHandler.get_current_dice()

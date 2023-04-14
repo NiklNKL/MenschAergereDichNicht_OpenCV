@@ -11,7 +11,7 @@ from tensorflow import keras
 from keras.models import load_model
 import time
 
-class HandGestureRecognizer:
+class GestureReader:
     def __init__(self, capId, timeThreshold, confidence = 0.7, cap = None):
         # Initialize the webcam 
         if not cap == None:
@@ -29,10 +29,10 @@ class HandGestureRecognizer:
         self.mpDraw = mp.solutions.drawing_utils
 
         # Load the gesture recognizer model
-        self.model = load_model('image_detection/handGestureDetect/mp_hand_gesture')
+        self.model = load_model('mensch_aergere_dich_nicht/image_detection/handGestureDetect/mp_hand_gesture')
 
         # Load class names
-        f = open('image_detection/handGestureDetect/gesture.names', 'r')
+        f = open('mensch_aergere_dich_nicht/image_detection/handGestureDetect/gesture.names', 'r')
         self.classNames = f.read().split('\n')
         f.close()
 
@@ -74,7 +74,6 @@ class HandGestureRecognizer:
         
         # Speichere die letzte Aktualisierungszeit
         
-
     def run(self, UiHandler):
         # Read each frame from the webcam
         _, self.frame = self.cap.read()

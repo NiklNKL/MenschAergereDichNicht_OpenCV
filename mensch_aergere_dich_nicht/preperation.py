@@ -1,9 +1,10 @@
-from mensch_aergere_dich_nicht import Field, Figure, Player, Game
-from image_detection import HandGestureRecognizer, DiceDetector, BoardReader
+from game_objects import Field, Figure, Player
+from game import Game
+from image_detection import GestureReader, DiceReader, BoardReader
 from ui import Ui
 import cv2
 
-class Handler():
+class Preperation():
     def __init__(self, diceId, gestureId, boardId, game: Game) -> None:
         self.currentClass = ""
         self.currentDice = 0
@@ -12,12 +13,12 @@ class Handler():
 
         if diceId == gestureId == boardId:
             cap = cv2.VideoCapture(diceId)
-            self.DiceHandler = DiceDetector(capId=diceId, cap=cap)
-            self.GestureHandler = HandGestureRecognizer(capId=gestureId, timeThreshold = 2, cap=cap)
+            self.DiceHandler = DiceReader(capId=diceId, cap=cap)
+            self.GestureHandler = GestureReader(capId=gestureId, timeThreshold = 2, cap=cap)
             self.BoardHandler = BoardReader(cap=cap, useImg=True)
         else:
-            self.DiceHandler = DiceDetector(capId=diceId)
-            self.GestureHandler = HandGestureRecognizer(capId=gestureId, timeThreshold = 2)
+            self.DiceHandler = DiceReader(capId=diceId)
+            self.GestureHandler = GestureReader(capId=gestureId, timeThreshold = 2)
             self.BoardHandler = BoardReader(capId=boardId, useImg=True)
         
         self.UiHandler = Ui(self.BoardHandler.frame,
@@ -93,8 +94,8 @@ class Handler():
         for index, color in enumerate(["green", "red", "black", "yellow"]):
             self.GameHandler.players.append(Player(color = color,
                                              id = index,
-                                             startField = startField,
-                                             game=self.GameHandler))
+                                             startField = startField
+                                             ))
             
             ## create Figure objects for each player (id range [1,4])
             for figureNum in range(1,5):
@@ -123,7 +124,7 @@ class Handler():
 
         for figure in self.GameHandler.figures:
             for count in range(0,4):
-                UiHandler.highlighting(figure.player.homefields[count].imgPos, figure.id,figure.player.color)
+                UiHandler.highlighting(figure.player.homefields[count].imgPos,figure.player.color, figure.id, "white")
 
         ## check if everything was created correctly
         for field in self.GameHandler.fields:

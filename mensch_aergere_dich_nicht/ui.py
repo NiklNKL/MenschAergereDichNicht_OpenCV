@@ -81,7 +81,6 @@ class Ui:
             
         self.update(overlay=self.overlay)
 
-
     def highlighting(self, coordinates, idx, highlithing_color):
         
         #get the original dimensions of the video feed
@@ -122,5 +121,3 @@ class Ui:
         #cv2.putText(self.boardHighlights, f"Figure_{color}_{idx}",pt2, cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 5)
         #cv2.imshow("test", self.boardHighlights)
         #self.update(boardFrame=frame)
-
-    

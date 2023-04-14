@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 from sklearn import cluster
 
-class DiceDetector:
+class DiceReader:
     def __init__(self, capId, cap = None):
         # Initialize the webcam 
         if not cap == None:

@@ -1,43 +1,8 @@
-from mensch_aergere_dich_nicht import Game
-
-class Field():
-	def __init__(self, imgPos:tuple, figure, streetIndex:int):
-		self.imgPos = imgPos
-		self.figure = figure
-		self.streetIndex = streetIndex # 0 - 43
-
-
-class Figure():
-	def __init__(self, relPos:int, player, id:int):
-		self.relPos = relPos
-		self.player = player
-		self.id = id # 1-4
-	
-	def get_position(self):
-		return self.relPos
-	
-	def set_position(self, p_value, coordinates, color, index, UiHandler):
-		self.relPos = p_value
-		UiHandler.highlighting(coordinates, index, color)
-	
-	# returns whether the figure is located on a start field
-	def is_start(self):
-		return self.relPos == None
-	
-	# returns whether the figure is located on a finish field
-	def is_finish(self):
-		is_on_finish = False
-		if self.relPos != None and self.relPos > 39:
-				is_on_finish = True
-		return is_on_finish
-	
-	def __str__(self) -> str:
-		return f"ID: {self.id}, Relative Position: {self.relPos}, Player: {self.player.color}"
-
+#from mensch_aergere_dich_nicht import Game
+from .field import Field
 
 class Player():
-	def __init__(self, color:str, id:int, startField:int, game:Game):
-		self.GameHandler = game
+	def __init__(self, color:str, id:int, startField:int):
 		self.color = color
 		self.id = id # 0-3
 		self.figures = []
@@ -127,21 +92,21 @@ class Player():
 							print("Figure " + str(f.id) + " (" + str(f.get_position()) + ") available")
 							available_figures.append([f, new_position])
 			
-			#highlighting of all available moves
-			if len(available_figures) > 0:
-				last_figure = available_figures[-1]
-				position = last_figure[1]
-				print(position)
-				try:
-					abs_pos = super().normalize_position(f.player.id, position)
-					coordinates = self.GameHandler.fields[abs_pos].imgPos
-				except IndexError:
-					## remove logic for endfield
-					endfieldPos = position % 40
-					coordinates = f.player.endfields[endfieldPos].imgPos
+			# #highlighting of all available moves
+			# if len(available_figures) > 0:
+			# 	last_figure = available_figures[-1]
+			# 	position = last_figure[1]
+			# 	print(position)
+			# 	try:
+			# 		abs_pos = super().normalize_position(f.player.id, position)
+			# 		coordinates = self.GameHandler.fields[abs_pos].imgPos
+			# 	except IndexError:
+			# 		## remove logic for endfield
+			# 		endfieldPos = position % 40
+			# 		coordinates = f.player.endfields[endfieldPos].imgPos
 
-				print(coordinates)
-				UiHandler.highlighting(coordinates, self.figures.index, self.color)
+			# 	print(coordinates)
+			# 	UiHandler.highlighting(coordinates, self.figures.index, self.color)
 		
 		return available_figures
 	

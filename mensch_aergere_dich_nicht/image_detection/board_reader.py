@@ -313,7 +313,7 @@ class BoardReader():
             ## choose frame to use instead of VideoCapture 
             # frame = cv2.imread('brett.png', cv2.IMREAD_COLOR)
             # frame = cv2.imread('data/empty.JPG', cv2.IMREAD_COLOR)
-            frame = cv2.imread('data/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
+            frame = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
             # frame = cv2.imread('data/wHand.JPG', cv2.IMREAD_COLOR) # <- case that should not work
             # frame = cv2.imread('data/w2fieldsCovered.jpg', cv2.IMREAD_COLOR) # <- case that should not work
         self.frame = frame

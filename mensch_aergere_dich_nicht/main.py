@@ -1,10 +1,10 @@
-from handler import Handler
-from mensch_aergere_dich_nicht import Game
+from preperation import Preperation
+from game import Game
 import cv2
 
-if __name__ == "__main__":
+def main():
     GameHandler = Game()
-    LogicHandler = Handler(diceId = 0, gestureId = 0, boardId = 0, game=GameHandler)
+    LogicHandler = Preperation(diceId = 0, gestureId = 0, boardId = 0, game=GameHandler)
 
     while True:
         # status = LogicHandler.current_gesture()
@@ -18,3 +18,6 @@ if __name__ == "__main__":
     cv2.VideoCapture(0).release()
     cv2.VideoCapture(0).release()
     cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
