@@ -82,7 +82,7 @@ class Ui:
         self.update(overlay=self.overlay)
 
 
-    def highlighting(self, coordinates, color, idx, highlithing_color):
+    def highlighting(self, coordinates, idx, highlithing_color):
         
         #get the original dimensions of the video feed
         #width = int(self.boardFrame.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -105,17 +105,21 @@ class Ui:
             transformedRadius = coordinates[2] / ratioHeight
         
         #calculate two points for the rectangle
-        pt1 = (int(transformedX - transformedRadius), int(transformedY + transformedRadius))
-        pt2 = (int(transformedX + transformedRadius), int(transformedY - transformedRadius))
+        center = list(transformedX, transformedY)
 
-        #draw a rectangle
+        #draw a circle
+        cv2.circle(self.boardHighlights, center, transformedRadius, highlithing_color, 5)
+        
+        #Id in den Kreis schreiben
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        text = idx
+        text_size, _ = cv2.getTextSize(text, font, 1, 2)
+        text_x = int(100 - text_size[0]/2)
+        text_y = int(100 + text_size[1]/2)
+        cv2.putText(self.boardHighlights, text, (text_x, text_y), font, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
-        if(highlithing_color == "green"):
-            self.boardHighlights = cv2.rectangle(self.boardHighlights, pt1, pt2, (0, 255, 0), 5)
-        else: 
-            self.boardHighlights = cv2.rectangle(self.boardHighlights, pt1, pt2, (255, 255, 255), 5)
         #Put text with the Figure color and id next to the rectangle
-        cv2.putText(self.boardHighlights, f"Figure_{color}_{idx}",pt2, cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 5)
+        #cv2.putText(self.boardHighlights, f"Figure_{color}_{idx}",pt2, cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 5)
         #cv2.imshow("test", self.boardHighlights)
         #self.update(boardFrame=frame)
 
