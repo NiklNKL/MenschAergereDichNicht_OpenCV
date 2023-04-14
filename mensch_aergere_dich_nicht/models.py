@@ -18,7 +18,7 @@ class Figure():
 	
 	def set_position(self, p_value, coordinates, color, index, UiHandler):
 		self.relPos = p_value
-		UiHandler.highlighting(coordinates, color, index)
+		UiHandler.highlighting(coordinates, index, color)
 	
 	# returns whether the figure is located on a start field
 	def is_start(self):
@@ -141,7 +141,7 @@ class Player():
 					coordinates = f.player.endfields[endfieldPos].imgPos
 
 				print(coordinates)
-				UiHandler.highlighting(coordinates, self.color, self.figures.index)
+				UiHandler.highlighting(coordinates, self.figures.index, self.color)
 		
 		return available_figures
 	
