@@ -7,9 +7,8 @@ class Figure():
 	def get_position(self):
 		return self.relPos
 	
-	def set_position(self, p_value, coordinates, color, index, UiHandler):
+	def set_position(self, p_value, coordinates, color, index):
 		self.relPos = p_value
-		UiHandler.highlighting(coordinates, index, color)
 	
 	# returns whether the figure is located on a start field
 	def is_start(self):

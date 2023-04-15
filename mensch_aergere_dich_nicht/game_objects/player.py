@@ -40,7 +40,7 @@ class Player():
 				return True
 		return False
 	
-	def available_moves(self, p_eye_count, UiHandler):
+	def available_moves(self, p_eye_count):
 		available_figures = []
 		print("Available Moves:")
 

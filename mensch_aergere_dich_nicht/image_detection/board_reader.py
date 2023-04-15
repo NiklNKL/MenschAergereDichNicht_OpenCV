@@ -1,24 +1,32 @@
 import cv2
 import numpy as np
 import math
-from ui import Ui 
+import threading
+import time
 
+class BoardReader(threading.Thread):
+    def __init__(self, cap, useImg=False) -> None:
 
-class BoardReader():
-    def __init__(self, capId=None, cap = None, useImg=False) -> None:
+        threading.Thread.__init__(self)
+        # Initialising of the videocapture
+        
+        self.cap = cap
+        
+        self.frame = self.cap.frame
+
         ## for testing purposes a single frame can be used
         self.useImg = useImg
-        self.frame = None
-
-        ## a VideCapture object could also be used (if multiple instances use the same cap)
-        if cap is not None:
-            self.cap = cap
-
-        ## otherwise use the device id to create a VideoCapture
-        else:
-            self.cap = cv2.VideoCapture(capId)
+        if self.useImg:
+            self.frame = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
         
-        self.get_frame()
+        self.street = None
+        self.indexOfGreen =  None
+        self.homefields = None
+        self.endfields = None
+
+        self.initialized = False
+
+        self._stop_event = threading.Event()
 
     def get_angle(self, a, b, c):
         """
@@ -273,9 +281,15 @@ class BoardReader():
             
     #         board = cv2.arrowedLine(board, normCord, newCord)
 
-    def prepare(self):   
-        self.get_frame()
+    def stop(self):
+        self._stop_event.set()
 
+    def stopped(self):
+        return self._stop_event.is_set()
+
+
+    def run(self):
+        self.temp_frame = self.cap.frame
         ## get playground
         while True:
             try:
@@ -286,39 +300,23 @@ class BoardReader():
 
         ## get street
         while True:
-            street = self.get_street(corners, center)
-            if len(street) == 40:
+            self.street = self.get_street(corners, center)
+            if len(self.street) == 40:
                 break
         
         ## get green starting field
-        indexOfGreen = -1
-        while indexOfGreen == -1:
-            indexOfGreen = self.identify_green_startingfield(street)
+        self.indexOfGreen = -1
+        while self.indexOfGreen == -1:
+            self.indexOfGreen = self.identify_green_startingfield(self.street)
 
         ## get homefields and endfields
         while True:
-            homefields, endfields = self.get_home_and_end(corners, center, street, indexOfGreen)
-            if len(homefields) == 4:
+            self.homefields, self.endfields = self.get_home_and_end(corners, center, self.street, self.indexOfGreen)
+            if len(self.homefields) == 4:
                 break
-
-        return street, indexOfGreen, homefields, endfields
-
-    def get_frame(self):
-        # Grab the latest image from the video feed or frame that has been handed over
-        if self.useImg == False:
-            if self.cap is None:
-                self.cap = cv2.VideoCapture(self.capId)
-            _, frame = self.cap.read()
-        else:
-            ## choose frame to use instead of VideoCapture 
-            # frame = cv2.imread('brett.png', cv2.IMREAD_COLOR)
-            # frame = cv2.imread('data/empty.JPG', cv2.IMREAD_COLOR)
-            frame = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
-            # frame = cv2.imread('data/wHand.JPG', cv2.IMREAD_COLOR) # <- case that should not work
-            # frame = cv2.imread('data/w2fieldsCovered.jpg', cv2.IMREAD_COLOR) # <- case that should not work
-        self.frame = frame
-
-    def run(self, UiHandler: Ui):
-        self.get_frame()
-        UiHandler.update(boardFrame = self.frame)
+        self.initialized = True
+        while True:
+            self.frame = self.cap.frame
+            if self.stopped():
+                break
 
