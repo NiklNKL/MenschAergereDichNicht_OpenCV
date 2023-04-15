@@ -125,17 +125,15 @@ class Game(threading.Thread):
 		return available_moves[0][0]
 
 	def get_current_dice(self):
-
-		while True:
+		newDice = 0
+		while True and not self.stopped():
 			newClass = self.HandThread.currentClass
-			newDice = self.DiceThread.dice
+			
+			newDice = self.DiceThread.eye_count
 			# print(f"{newClass}  {newDice}")
 			# self.BoardHandler.run(self.UiHandler)
 			if newDice in range(1,7):
-				if not newClass == self.currentClass and self.currentClass == "thumbs up":
-					self.currentClass = newClass 
-				elif newClass == "thumbs up" and not self.currentClass == "thumbs up":
-					self.currentClass = newClass
+				if newClass == "thumbs up" :
 					print(f"retreived {newDice}")
 					break
 			
@@ -206,7 +204,7 @@ class Game(threading.Thread):
 						self.current_turn(eye_count)
 						break
 			
-			while p.has_movable_figures():
+			while p.has_movable_figures() and not self.stopped():
 				try:
 					eye_count = self.get_current_dice()
 				except Exception as e:

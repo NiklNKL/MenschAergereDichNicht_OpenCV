@@ -4,13 +4,14 @@ import threading
 import time
 
 class Ui(threading.Thread):
-    def __init__(self, game_thread, dice_thread, hand_thread, board_thread) -> None:
+    def __init__(self, dice_thread, hand_thread, board_thread, game_thread, dice_cap, hand_cap, board_cap) -> None:
 
         threading.Thread.__init__(self)
         self._stop_event = threading.Event()
 
         self.shape = (640, 360)
-
+        # self.cap = cap
+        # _, self.frame = self.cap.read()
         self.player, self.dice, self.turn, self.prompt, self.movable_figures = "", "", "", "", ""
         
         self.game_thread = game_thread
@@ -18,51 +19,64 @@ class Ui(threading.Thread):
         self.hand_thread = hand_thread
         self.board_thread = board_thread
 
-        self.board_frame = self.board_thread.frame
-        self.dice_frame = self.dice_thread.frame
-        self.hand_frame = self.hand_thread.frame
-        self.overlay_frame = np.zeros((self.shape[1], self.shape[0], 3), np.uint8)
+        self.dice_cap = dice_cap
+        self.hand_cap = hand_cap
+        self.board_cap = board_cap
 
-        self.board_frame = cv2.resize(self.board_thread.frame, self.shape)
-        self.dice_frame = cv2.resize(self.dice_thread.frame, self.shape)
-        self.hand_frame = cv2.resize(self.hand_thread.frame, self.shape)
-        self.overlay_frame = cv2.resize(self.overlay_frame, self.shape)
+        # self.board_frame = self.board_thread.frame
+        # self.dice_overlay = self.dice_thread.overlay
+        # self.hand_frame = self.hand_thread.frame
 
-        self.board_highlights = np.zeros_like(self.board_frame, dtype=np.uint8)
+        self.info_frame = np.zeros((self.shape[1], self.shape[0], 3), np.uint8)
 
-        ## create two horizontal stacks
-        ## first stacks contains empty frame as background for game status
+        self.exit = False
+
+        # self.board_frame = cv2.resize(self.board_thread.frame, self.shape)
+        # self.dice_frame = cv2.resize(self.dice_thread.frame, self.shape)
+        # self.hand_frame = cv2.resize(self.hand_thread.frame, self.shape)
+        # self.info_frame = cv2.resize(self.info_frame, self.shape)
+
+        # self.board_highlights = np.zeros_like(self.board_frame, dtype=np.uint8)
+
+        # ## create two horizontal stacks
+        # ## first stacks contains empty frame as background for game status
         
-
-        # self.numpy_horizontal_upper = np.hstack((self.overlay_frame, self.board_frame))
+        # self.numpy_horizontal_upper = np.hstack((self.info_frame, self.board_frame))
         # self.numpy_horizontal_lower = np.hstack((self.dice_frame, self.hand_frame))
         # self.update_text()
         # self.stream = np.vstack((self.numpy_horizontal_upper, self.numpy_horizontal_lower))
 
+
+    def prepare_frame(self, cap, shape, overlay=None ):
+        frame = cap.frame
+        resize_frame = cv2.resize(frame, shape)
+        if overlay is not None:
+            resize_overlay = cv2.resize(overlay, shape)
+            merged_frame = cv2.bitwise_or(resize_overlay, resize_frame)
+            return merged_frame
+        return resize_frame
+
     def update(self):
 
-        self.board_frame = cv2.resize(self.board_thread.frame, self.shape)
-        self.dice_frame = cv2.resize(self.dice_thread.frame, self.shape)
-        self.hand_frame = cv2.resize(self.hand_thread.frame, self.shape)
-        self.overlay_frame = cv2.resize(self.overlay_frame, self.shape)
+        # self.board_frame = cv2.resize(self.board_thread.frame, self.shape)
+        # self.dice_frame = cv2.resize(self.dice_thread.frame, self.shape)
+        # self.hand_frame = cv2.resize(self.hand_thread.frame, self.shape)
+        info_frame = cv2.resize(self.info_frame, self.shape)
+
+        board_frame = self.prepare_frame(self.board_cap, self.shape)
+        dice_frame = self.prepare_frame(self.dice_cap, self.shape, self.dice_thread.overlay)
+        hand_frame = self.prepare_frame(self.hand_cap, self.shape, self.hand_thread.overlay)
+
         ## update only frame that was handed over
 
         ## upper horizontal
-        if self.overlay_frame is not None:
-            self.overlay_frame = cv2.resize(self.overlay_frame, self.shape)
-            self.numpy_horizontal_upper = np.hstack((self.overlay_frame, self.board_frame))
-        if self.board_thread.frame is not None:
-            self.board_frame = cv2.resize(self.board_thread.frame, self.shape)
-            self.board_frame = cv2.bitwise_or(self.board_frame, self.board_highlights)
-            self.numpy_horizontal_upper = np.hstack((self.overlay_frame, self.board_frame))
+        
+        # self.board_frame = cv2.bitwise_or(self.board_frame, self.board_highlights)
+        self.numpy_horizontal_upper = np.hstack((info_frame, board_frame))
 
         ## lower
-        if self.dice_thread.frame is not None:
-            self.dice_frame = cv2.resize(self.dice_thread.frame, self.shape)
-            self.numpy_horizontal_lower = np.hstack((self.dice_frame, self.hand_frame))
-        if self.hand_thread.frame is not None:
-            self.hand_frame = cv2.resize(self.hand_thread.frame, self.shape)
-            self.numpy_horizontal_lower = np.hstack((self.dice_frame, self.hand_frame))
+
+        self.numpy_horizontal_lower = np.hstack((dice_frame, hand_frame))
 
         ## stack vertically
         self.stream = np.vstack((self.numpy_horizontal_upper, self.numpy_horizontal_lower))
@@ -82,27 +96,27 @@ class Ui(threading.Thread):
         if movable_figures is not None:
             self.movable_figures = movable_figures
 
-        cv2.putText(self.overlay_frame, 
+        cv2.putText(self.info_frame, 
                     f"Player: {self.player}",
                     (50,50),
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
 
-        cv2.putText(self.overlay_frame, 
+        cv2.putText(self.info_frame, 
                     f"Current turn: {self.turn}",
                     (50,100),
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
         
-        cv2.putText(self.overlay_frame, 
+        cv2.putText(self.info_frame, 
                     f"Current dice: {self.dice}",
                     (50,150),
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
         
-        cv2.putText(self.overlay_frame, 
+        cv2.putText(self.info_frame, 
                     f"Movable figures: {movable_figures}",
                     (50,200),
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
 
-        cv2.putText(self.overlay_frame, 
+        cv2.putText(self.info_frame, 
                     f"{prompt}",
                     (50,250),
                     cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
@@ -117,9 +131,14 @@ class Ui(threading.Thread):
 
     def run(self):
         while True:
-            t = 1/60
-            time.sleep(t)
+            # t = 1/60
+            # time.sleep(t)
             self.update()
+            key = cv2.waitKey(20)
+            if key == 27:  # exit on ESC
+                self.exit = True
+                cv2.destroyAllWindows()
+                break
             if self.stopped():
                 break
 

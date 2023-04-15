@@ -5,16 +5,14 @@ import threading
 import time
 
 class BoardReader(threading.Thread):
-    def __init__(self, capId=None, cap = None, useImg=False) -> None:
+    def __init__(self, cap, useImg=False) -> None:
 
         threading.Thread.__init__(self)
         # Initialising of the videocapture
-        if not cap == None:
-            self.cap = cap
-        else:
-            self.cap = cv2.VideoCapture(capId)
-
-        _, self.frame = self.cap.read()
+        
+        self.cap = cap
+        
+        self.frame = self.cap.frame
 
         ## for testing purposes a single frame can be used
         self.useImg = useImg
@@ -291,7 +289,7 @@ class BoardReader(threading.Thread):
 
 
     def run(self):
-        _, self.temp_frame = self.cap.read()
+        self.temp_frame = self.cap.frame
         ## get playground
         while True:
             try:
@@ -318,7 +316,7 @@ class BoardReader(threading.Thread):
                 break
         self.initialized = True
         while True:
-            _, self.frame = self.cap.read()
+            self.frame = self.cap.frame
             if self.stopped():
                 break
 

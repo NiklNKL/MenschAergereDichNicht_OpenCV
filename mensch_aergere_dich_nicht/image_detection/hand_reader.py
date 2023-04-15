@@ -12,19 +12,18 @@ from time import time
 import threading
 
 class HandReader(threading.Thread):
-    def __init__(self, capId, timeThreshold, confidence = 0.7, cap = None, videoFeed = "gesture"):
+    def __init__(self, timeThreshold, cap, confidence = 0.7, videoFeed = "gesture"):
         
         threading.Thread.__init__(self)
         # Initialising of the videocapture
-        if not cap == None:
-            self.cap = cap
-        else:
-            self.cap = cv2.VideoCapture(capId)
+        self.cap = cap
 
-        _, self.temp_frame = self.cap.read()
-        self.frame = self.temp_frame
+        self.frame = self.cap.frame
 
-        self.x , self.y, self.c = self.temp_frame.shape
+        self.x , self.y, self.c = self.frame.shape
+
+        self.temp_overlay = np.zeros((self.x, self.y, 3), np.uint8)
+        self.overlay = self.temp_overlay
 
         # Variable for gesture or counter stream
         self.videoFeed = videoFeed
@@ -324,13 +323,15 @@ class HandReader(threading.Thread):
         while True:
             self.videoFeed = videoFeed
             # Initialize the webcam for Hand Gesture Recognition Python proje
-            _, self.temp_frame = self.cap.read()
-            self.x , self.y, self.c = self.temp_frame.shape
+            self.frame = self.cap.frame
+            self.x , self.y, self.c = self.frame.shape
 
-            # Flip the frame vertically
-            self.temp_frame = cv2.flip(self.temp_frame, 1)
+            self.temp_overlay = np.zeros((self.x, self.y, 3), np.uint8)
 
-            framergb = cv2.cvtColor(self.temp_frame, cv2.COLOR_BGR2RGB)
+            # # Flip the frame vertically
+            # self.frame = cv2.flip(self.frame, 1)
+
+            framergb = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
             # Get hand landmark prediction
             result = self.hands.process(framergb)
             fingerResult = self.finger.process(framergb)
@@ -339,7 +340,7 @@ class HandReader(threading.Thread):
             count = -1
 
             if self.videoFeed == "gesture":
-                className, self.temp_frame = self.getGesture(result, self.temp_frame)
+                className, self.temp_overlay = self.getGesture(result, self.temp_overlay)
                 self.update_class(className)
 
                 self.new_frame_time = time()
@@ -347,17 +348,17 @@ class HandReader(threading.Thread):
                 self.prev_frame_time = self.new_frame_time
                 fps = int(fps)
                 fps = str(fps)
-                cv2.putText(self.temp_frame, fps, (10, 700), cv2.FONT_HERSHEY_SIMPLEX, 3, (100, 255, 0), 3, cv2.LINE_AA)
+                cv2.putText(self.temp_overlay, fps, (10, 700), cv2.FONT_HERSHEY_SIMPLEX, 3, (100, 255, 0), 3, cv2.LINE_AA)
 
-                cv2.putText(self.temp_frame, "Detected Gesture: " + self.currentClass, (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                cv2.putText(self.temp_overlay, "Detected Gesture: " + self.currentClass, (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0,0,255), 2, cv2.LINE_AA)
                 
             elif self.videoFeed == "counter":
-                count, self.temp_frame = self.getFingers(fingerResult, self.temp_frame)
+                count, self.temp_overlay = self.getFingers(fingerResult, self.temp_overlay)
                 self.update_count(count)
-                cv2.putText(self.temp_frame, "Detected Count: " + str(self.currentCount), (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                cv2.putText(self.temp_overlay, "Detected Count: " + str(self.currentCount), (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0,0,255), 2, cv2.LINE_AA)
-            self.frame = self.temp_frame
+            self.overlay = self.temp_overlay
             # UiHandler.update(handFrame = self.frame)
             self.initialized = True
             if self.stopped():
