@@ -1,6 +1,7 @@
 import threading
 from time import time
 import cv2
+from .fps import Fps
 
 class VideoStream(threading.Thread):
     def __init__(self, cap_id, cap=None):
@@ -19,10 +20,8 @@ class VideoStream(threading.Thread):
         _, self.temp_frame = self.cap.read()
         self.frame = self.temp_frame
 
-        
-
         self.prev_frame_time = 0
-        self.new_frame_time = 0
+        self.fps_tracker = Fps()
 
     def stop(self):
         cv2.VideoCapture(self.cap_id).release()
@@ -34,12 +33,10 @@ class VideoStream(threading.Thread):
     def run(self):
         while True and not self.stopped():
             _, self.temp_frame = self.cap.read()
-            self.new_frame_time = time()
-            fps = 1/(self.new_frame_time-self.prev_frame_time)
-            self.prev_frame_time = self.new_frame_time
-            fps = int(fps)
-            fps = str(fps)
-            cv2.putText(self.temp_frame, fps, (10, 700), cv2.FONT_HERSHEY_SIMPLEX, 3, (100, 255, 0), 3, cv2.LINE_AA)
+
+            self.temp_frame = self.fps_tracker.counter(self.temp_frame, self.prev_frame_time, name="Vid", corner=3)
+            self.prev_frame_time = time()
+
             self.frame = self.temp_frame
             self.initialized = True
             if self.stopped():

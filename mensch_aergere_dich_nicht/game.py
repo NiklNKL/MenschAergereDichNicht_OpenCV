@@ -73,13 +73,13 @@ class Game(threading.Thread):
 				# UiHandler.highlighting(figure.player.home_fields[count].imgPos, figure.id, figure.player.color)
 
 		## check if everything was created correctly
-		for field in self.fields:
-			print({"imgPos": field.imgPos, "figure": field.figure, "streetIndex": field.streetIndex})
-		for player in self.players:
-			print({"color": player.color, "start_field": player.start_field, "finish_field": player.finish_field})
-		for figure in self.figures:
-			print({"relPos": figure.relPos, "team": figure.player, "item": figure.id})
-		print("finished preparations")
+		# for field in self.fields:
+		# 	print({"imgPos": field.imgPos, "figure": field.figure, "streetIndex": field.streetIndex})
+		# for player in self.players:
+		# 	print({"color": player.color, "start_field": player.start_field, "finish_field": player.finish_field})
+		# for figure in self.figures:
+		# 	print({"relPos": figure.relPos, "team": figure.player, "item": figure.id})
+		# print("finished preparations")
 
 	def wait_for_gesture(self, goal_gesture, second_goal_gesture = None):
 		self.hand_thread.video_feed = "gesture"
@@ -253,7 +253,7 @@ class Game(threading.Thread):
 
 		self.game_status = GameStatus.RUNNING
 
-		while True:
+		while True and not self.stopped():
 			
 			player = self.players[self.current_player]
 			print(f"It's {player.color}'s turn!")

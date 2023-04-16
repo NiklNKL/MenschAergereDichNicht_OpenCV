@@ -74,14 +74,14 @@ class BoardReader(threading.Thread):
         corners = np.squeeze(cv2.approxPolyDP(cnt, epsilon, True), axis=1)
 
         if not len(corners) == 4:
-            raise Exception("could not find four corners of playground")
+            raise Exception("Could not find four corners of playground")
         
         ## get center of playground
         x = [p[0] for p in corners]
         y = [p[1] for p in corners]
         center = (sum(x) / len(corners), sum(y) / len(corners))
 
-        print("finished playground detection")
+        print("Finished playground detection")
 
         return (corners, center)
 
@@ -151,7 +151,7 @@ class BoardReader(threading.Thread):
             angles.append([angle, x, y, r])
         sortedStreet = sorted(angles,key=lambda c: c[0])
         
-        print(f"finished street detection with {len(sortedStreet)}")
+        print(f"Finished street detection with {len(sortedStreet)}")
 
         return sortedStreet
 
@@ -224,7 +224,7 @@ class BoardReader(threading.Thread):
         cv2.waitKey(0)
         """
 
-        print(f"finished non_street detection with {len(sortedStreet)} fields")
+        print(f"Finished non_street detection with {len(sortedStreet)} fields")
         return home_fields, end_fields
 
     def identify_green_startingfield(self, street):
@@ -291,7 +291,8 @@ class BoardReader(threading.Thread):
     def run(self):
         self.temp_frame = self.cap.frame
         ## get playground
-        while True:
+        print("\nStarting playground detection...")
+        while True and not self.initialized:
             try:
                 corners, center = self.get_playground()
                 break
@@ -299,24 +300,26 @@ class BoardReader(threading.Thread):
                 print(e)
 
         ## get street
-        while True:
+        print("\nStarting street detection...")
+        while True and not self.initialized:   
             self.street = self.get_street(corners, center)
             if len(self.street) == 40:
                 break
         
         ## get green starting field
+        print("\nStarting non-street detection...")
         self.indexOfGreen = -1
         while self.indexOfGreen == -1:
             self.indexOfGreen = self.identify_green_startingfield(self.street)
 
         ## get home_fields and end_fields
-        while True:
+        while True and not self.initialized:
             self.home_fields, self.end_fields = self.get_home_and_end(corners, center, self.street, self.indexOfGreen)
             if len(self.home_fields) == 4:
                 break
         self.initialized = True
         while True:
-            self.frame = self.cap.frame
+            pass
             if self.stopped():
                 break
 

@@ -4,6 +4,7 @@ import cv2
 from ui import Ui
 from utilities import VideoStream
 from utilities import GameStatus
+import time
 
 def main():
 
@@ -11,17 +12,15 @@ def main():
     hand_camera_id = 1
     board_camera_id = 1
 
-    print("Starting threads...")
+    print("\nStarting threads...")
+
+    start_time = time.time()
 
     # Nur wichtig, wenn wir alles über eine Kamera laufen lassen
     if dice_camera_id == hand_camera_id == board_camera_id:
-        test_cap = cv2.VideoCapture(dice_camera_id)
-        uicap = VideoStream(dice_camera_id, test_cap)
-        cap = VideoStream(dice_camera_id, test_cap)
+        cap = VideoStream(dice_camera_id)
         cap.name = "VideoStreamThread"
-        uicap.name = "VideoStreamThread_ui"
         cap.start()
-        uicap.start()
         dice_cap = cap
         hand_cap = cap
         board_cap = cap
@@ -38,13 +37,13 @@ def main():
         board_cap.start()
 
     if dice_camera_id == hand_camera_id == board_camera_id:
-        while not cap.initialized and not uicap.initialized:
+        while not cap.initialized:
             pass
     else:
         while not (dice_cap.initialized and hand_cap.initialized and board_cap.initialized):
             pass
 
-    print("We got all the frames!")
+    print("\nWe got all the frames! It took: " + str(time.time()-start_time)+" seconds.\n")
 
     dice_thread = DiceReader(cap=dice_cap)
     dice_thread.name = "DiceReaderThread"
@@ -60,9 +59,10 @@ def main():
                    dice_thread = dice_thread, 
                    board_thread = board_thread, 
                    game_thread = game_thread,
-                   dice_cap = uicap,
-                   hand_cap = uicap,
-                   board_cap = uicap)
+                   dice_cap = dice_cap,
+                   hand_cap = hand_cap,
+                   board_cap = board_cap,
+                   useImg = True)
     ui_thread.name = "UiThread"
 
     
@@ -71,23 +71,23 @@ def main():
     board_thread.start()
     while not (dice_thread.initialized and hand_thread.initialized and board_thread.initialized):
         pass
-    print("Initialisation part 1: Success")
+    print("\nAll cam_threads initialized! It took: " + str(time.time()-start_time) + " seconds.\n")
 
     game_thread.start()
     
     while not game_thread.initialized:
         pass
 
-    print("Initialisation part 2: Success")
+    print("game_thread initialized! It took: " + str(time.time()-start_time) + " seconds.\n")
 
     ui_thread.start()
 
-    print("Initialisation part 3: Success")
-
     while True:
         # status = LogicHandler.current_gesture()
+        time.sleep(5)
         status = game_thread.game_status
         if status == GameStatus.QUIT or ui_thread.exit:
+            end_time = ui_thread.end_time
             ui_thread.stop()
             game_thread.stop()
             dice_thread.stop()
@@ -99,7 +99,10 @@ def main():
                 dice_cap.stop()
                 hand_cap.stop()
                 board_cap.stop()
+            print("\nProcess quit!\n")
+            print("Process ran for: " + str((time.time()-start_time)/60) + " minutes!\n")
             break
 
+    print("Shutdown took: " + str(time.time()-end_time) + " seconds.\n")
 if __name__ == "__main__":
     main()

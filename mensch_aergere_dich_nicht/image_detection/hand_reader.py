@@ -10,6 +10,7 @@ from tensorflow import keras
 from keras.models import load_model
 from time import time
 import threading
+from utilities import Fps
 
 class HandReader(threading.Thread):
     def __init__(self, timeThreshold, cap, confidence = 0.7, video_feed = "gesture"):
@@ -60,7 +61,7 @@ class HandReader(threading.Thread):
         self.count_last_update_time = time()
 
         self.prev_frame_time = 0
-        self.new_frame_time = 0
+        self.fps_tracker = Fps()
 
         self.initialized = False
 
@@ -343,19 +344,19 @@ class HandReader(threading.Thread):
                 className, self.temp_overlay = self.getGesture(result, self.temp_overlay)
                 self.update_class(className)
 
-                self.new_frame_time = time()
-                fps = 1/(self.new_frame_time-self.prev_frame_time)
-                self.prev_frame_time = self.new_frame_time
-                fps = int(fps)
-                fps = str(fps)
-                cv2.putText(self.temp_overlay, fps, (10, 700), cv2.FONT_HERSHEY_SIMPLEX, 3, (100, 255, 0), 3, cv2.LINE_AA)
-
+                self.temp_overlay = self.fps_tracker.counter(self.temp_overlay, self.prev_frame_time, name="Hand", corner=2)
+                self.prev_frame_time = time()
+                
                 cv2.putText(self.temp_overlay, "Detected Gesture: " + self.currentClass, (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0,0,255), 2, cv2.LINE_AA)
                 
             elif self.video_feed == "counter":
                 count, self.temp_overlay = self.getFingers(fingerResult, self.temp_overlay)
                 self.update_count(count)
+
+                self.temp_overlay = self.fps_tracker.counter(self.temp_overlay, self.prev_frame_time, name="Hand", corner=2)
+                self.prev_frame_time = time()
+
                 cv2.putText(self.temp_overlay, "Detected Count: " + str(self.currentCount), (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0,0,255), 2, cv2.LINE_AA)
             self.overlay = self.temp_overlay
