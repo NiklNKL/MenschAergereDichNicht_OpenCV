@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import threading
-import time
+from time import time
 
 class Ui(threading.Thread):
     def __init__(self, dice_thread, hand_thread, board_thread, game_thread, dice_cap, hand_cap, board_cap) -> None:
@@ -9,9 +9,6 @@ class Ui(threading.Thread):
         threading.Thread.__init__(self)
         self._stop_event = threading.Event()
 
-        self.shape = (640, 360)
-        # self.cap = cap
-        # _, self.frame = self.cap.read()
         self.player, self.dice, self.turn, self.prompt, self.movable_figures = "", "", "", "", ""
         
         self.game_thread = game_thread
@@ -23,29 +20,23 @@ class Ui(threading.Thread):
         self.hand_cap = hand_cap
         self.board_cap = board_cap
 
-        # self.board_frame = self.board_thread.frame
-        # self.dice_overlay = self.dice_thread.overlay
-        # self.hand_frame = self.hand_thread.frame
+        self.shape = (1920, 1080)
 
-        self.info_frame = np.zeros((self.shape[1], self.shape[0], 3), np.uint8)
+        self.window_name = "Mensch_aergere_dich_nicht"
+
+        self.dice_frame_shape = (int(self.shape[0]*0.4), int(self.shape[1]*0.425))
+        self.hand_frame_shape = (int(self.shape[0]*0.4), int(self.shape[1]*0.425))
+        self.terminal_frame_shape = (int(self.shape[0]*0.4), int(self.shape[1]*0.15))
+        self.instruction_frame_shape = (int(self.shape[0]*0.6), int(self.shape[1]*0.15))
+        self.board_frame_shape = (int(self.shape[0]*0.6), int(self.shape[1]*0.85))
+
+        self.terminal_frame = np.zeros((self.terminal_frame_shape[1], self.terminal_frame_shape[0], 3), np.uint8)
+        self.instruction_frame = np.full((self.instruction_frame_shape[1], self.instruction_frame_shape[0], 3),255, np.uint8)
 
         self.exit = False
 
-        # self.board_frame = cv2.resize(self.board_thread.frame, self.shape)
-        # self.dice_frame = cv2.resize(self.dice_thread.frame, self.shape)
-        # self.hand_frame = cv2.resize(self.hand_thread.frame, self.shape)
-        # self.info_frame = cv2.resize(self.info_frame, self.shape)
-
-        # self.board_highlights = np.zeros_like(self.board_frame, dtype=np.uint8)
-
-        # ## create two horizontal stacks
-        # ## first stacks contains empty frame as background for game status
-        
-        # self.numpy_horizontal_upper = np.hstack((self.info_frame, self.board_frame))
-        # self.numpy_horizontal_lower = np.hstack((self.dice_frame, self.hand_frame))
-        # self.update_text()
-        # self.stream = np.vstack((self.numpy_horizontal_upper, self.numpy_horizontal_lower))
-
+        self.prev_frame_time = 0
+        self.new_frame_time = 0
 
     def prepare_frame(self, cap, shape, overlay=None ):
         frame = cap.frame
@@ -56,31 +47,6 @@ class Ui(threading.Thread):
             return merged_frame
         return resize_frame
 
-    def update(self):
-
-        # self.board_frame = cv2.resize(self.board_thread.frame, self.shape)
-        # self.dice_frame = cv2.resize(self.dice_thread.frame, self.shape)
-        # self.hand_frame = cv2.resize(self.hand_thread.frame, self.shape)
-        info_frame = cv2.resize(self.info_frame, self.shape)
-
-        board_frame = self.prepare_frame(self.board_cap, self.shape)
-        dice_frame = self.prepare_frame(self.dice_cap, self.shape, self.dice_thread.overlay)
-        hand_frame = self.prepare_frame(self.hand_cap, self.shape, self.hand_thread.overlay)
-
-        ## update only frame that was handed over
-
-        ## upper horizontal
-        
-        # self.board_frame = cv2.bitwise_or(self.board_frame, self.board_highlights)
-        self.numpy_horizontal_upper = np.hstack((info_frame, board_frame))
-
-        ## lower
-
-        self.numpy_horizontal_lower = np.hstack((dice_frame, hand_frame))
-
-        ## stack vertically
-        self.stream = np.vstack((self.numpy_horizontal_upper, self.numpy_horizontal_lower))
-        cv2.imshow("Mensch_aergere_dich_nicht", self.stream)
 
     def update_text(self, player=None, turn=None, dice=None, movable_figures=None, prompt=""):
         ## reset current content
@@ -123,6 +89,14 @@ class Ui(threading.Thread):
             
         self.update()
     
+    def fps(self, frame):
+        self.new_frame_time = time()
+        fps = 1/(self.new_frame_time-self.prev_frame_time)
+        self.prev_frame_time = self.new_frame_time
+        fps = int(fps)
+        fps = str(fps)
+        return cv2.putText(frame, fps, (1790, 80), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 3, cv2.LINE_AA)
+
     def stop(self):
         self._stop_event.set()
 
@@ -131,9 +105,23 @@ class Ui(threading.Thread):
 
     def run(self):
         while True:
-            # t = 1/60
-            # time.sleep(t)
-            self.update()
+            
+            board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape)
+            dice_frame = self.prepare_frame(self.dice_cap, self.dice_frame_shape)
+            hand_frame = self.prepare_frame(self.hand_cap, self.hand_frame_shape)
+        
+            numpy_horizontal_upper = np.hstack((self.terminal_frame, self.instruction_frame))
+            left_vertical = np.vstack((dice_frame, hand_frame))
+
+            ## lower
+
+            numpy_horizontal_lower = np.hstack((left_vertical, board_frame))
+
+            ## stack vertically
+            stream = np.vstack((numpy_horizontal_upper, numpy_horizontal_lower))
+            stream = self.fps(stream)
+            cv2.imshow(self.window_name, stream)
+
             key = cv2.waitKey(20)
             if key == 27:  # exit on ESC
                 self.exit = True

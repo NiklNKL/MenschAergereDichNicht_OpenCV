@@ -2,20 +2,20 @@
 from .field import Field
 
 class Player():
-	def __init__(self, color:str, id:int, startField:int):
+	def __init__(self, color:str, id:int, start_field:int):
 		self.color = color
 		self.id = id # 0-3
 		self.figures = []
-		self.startField = startField
-		self.finishField = (startField + 39)%40
-		self.endfields = None
-		self.homefields = None
+		self.start_field = start_field
+		self.finish_field = (start_field + 39)%40
+		self.end_fields = None
+		self.home_fields = None
 
 	def set_homefield(self, homefield):
-		self.homefields = [Field(imgPos=(x[1],x[2],x[3]), figure=self.figures[id],streetIndex=None) for id, x in enumerate(homefield)]
+		self.home_fields = [Field(imgPos=(x[1],x[2],x[3]), figure=self.figures[id],streetIndex=None) for id, x in enumerate(homefield)]
 
 	def set_endfield(self, endfield):
-		self.endfields = [Field(imgPos=(x[1],x[2],x[3]), figure=None,streetIndex=None) for x in endfield]
+		self.end_fields = [Field(imgPos=(x[1],x[2],x[3]), figure=None,streetIndex=None) for x in endfield]
 
 	# Checks whether there are movable figures on the field
 	def has_movable_figures(self):
@@ -103,7 +103,7 @@ class Player():
 			# 	except IndexError:
 			# 		## remove logic for endfield
 			# 		endfieldPos = position % 40
-			# 		coordinates = f.player.endfields[endfieldPos].imgPos
+			# 		coordinates = f.player.end_fields[endfieldPos].imgPos
 
 			# 	print(coordinates)
 			# 	UiHandler.highlighting(coordinates, self.figures.index, self.color)
@@ -125,12 +125,12 @@ class Player():
 		return None
 	
 	# Checks whether all figures are located on a finish field
-	def check_all_finish(self):
+	def all_figures_finished(self):
 		for f in self.figures:
 			if f.is_finish() == False:
-				return 0
+				return False
 		print("You have won!")
-		return 1
+		return True
 
 	def __str__(self) -> str:
 		return f"{self.color}"

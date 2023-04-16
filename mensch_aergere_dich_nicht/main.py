@@ -3,6 +3,7 @@ from image_detection import HandReader, DiceReader, BoardReader
 import cv2
 from ui import Ui
 from utilities import VideoStream
+from utilities import GameStatus
 
 def main():
 
@@ -14,9 +15,13 @@ def main():
 
     # Nur wichtig, wenn wir alles über eine Kamera laufen lassen
     if dice_camera_id == hand_camera_id == board_camera_id:
-        cap = VideoStream(dice_camera_id)
+        test_cap = cv2.VideoCapture(dice_camera_id)
+        uicap = VideoStream(dice_camera_id, test_cap)
+        cap = VideoStream(dice_camera_id, test_cap)
         cap.name = "VideoStreamThread"
+        uicap.name = "VideoStreamThread_ui"
         cap.start()
+        uicap.start()
         dice_cap = cap
         hand_cap = cap
         board_cap = cap
@@ -33,7 +38,7 @@ def main():
         board_cap.start()
 
     if dice_camera_id == hand_camera_id == board_camera_id:
-        while not cap.initialized:
+        while not cap.initialized and not uicap.initialized:
             pass
     else:
         while not (dice_cap.initialized and hand_cap.initialized and board_cap.initialized):
@@ -55,9 +60,9 @@ def main():
                    dice_thread = dice_thread, 
                    board_thread = board_thread, 
                    game_thread = game_thread,
-                   dice_cap = dice_cap,
-                   hand_cap = hand_cap,
-                   board_cap = board_cap)
+                   dice_cap = uicap,
+                   hand_cap = uicap,
+                   board_cap = uicap)
     ui_thread.name = "UiThread"
 
     
@@ -81,8 +86,8 @@ def main():
 
     while True:
         # status = LogicHandler.current_gesture()
-        status = game_thread.status
-        if status == 1 or ui_thread.exit:
+        status = game_thread.game_status
+        if status == GameStatus.QUIT or ui_thread.exit:
             ui_thread.stop()
             game_thread.stop()
             dice_thread.stop()

@@ -77,7 +77,7 @@ class DiceReader(threading.Thread):
                 self.display.append(self.readings[-1])                    # ... then we have a valid reading.
 
             # if the most recent valid reading has changed, and it's something other than zero, then print it.
-            if self.display[-1] != self.display[-2] and self.display[-1] != 0:
+            if self.display[-1] != self.display[-2] and self.display[-1] != 0 and self.display[-1] <=6:
                self.eye_count = self.display[-1]
 
             self.counter += 1

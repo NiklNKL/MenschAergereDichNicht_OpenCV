@@ -21,8 +21,8 @@ class BoardReader(threading.Thread):
         
         self.street = None
         self.indexOfGreen =  None
-        self.homefields = None
-        self.endfields = None
+        self.home_fields = None
+        self.end_fields = None
 
         self.initialized = False
 
@@ -179,8 +179,8 @@ class BoardReader(threading.Thread):
         ## shift index
         sortedStreet = np.roll(sortedStreet, (4,4,4,4))
 
-        ## get endfields and homefields
-        homefields, endfields  = [], []
+        ## get end_fields and home_fields
+        home_fields, end_fields  = [], []
         for i in range(0,32,8):
             homefield, endfield = [], []
 
@@ -197,15 +197,15 @@ class BoardReader(threading.Thread):
             if homefield[1][2]>homefield[2][2]:
                 homefield[[1,2]]=homefield[[2,1]]
 
-            homefields.append(homefield)
-            endfields.append(endfield)
+            home_fields.append(homefield)
+            end_fields.append(endfield)
 
         """
-        endfields = np.uint16(np.around(endfields))
-        homefields = np.uint16(np.around(homefields))
+        end_fields = np.uint16(np.around(end_fields))
+        home_fields = np.uint16(np.around(home_fields))
         for index, color in enumerate(["G","R","B","Y"]):
-            homefield = homefields[index]
-            endfield = endfields[index]
+            homefield = home_fields[index]
+            endfield = end_fields[index]
             for idx, (_, a, b, r) in enumerate(homefield):
             # a, b, r = pt[1], pt[2], pt[3]
             # Draw the circumference of the circle.
@@ -225,7 +225,7 @@ class BoardReader(threading.Thread):
         """
 
         print(f"finished non_street detection with {len(sortedStreet)} fields")
-        return homefields, endfields
+        return home_fields, end_fields
 
     def identify_green_startingfield(self, street):
         """
@@ -309,10 +309,10 @@ class BoardReader(threading.Thread):
         while self.indexOfGreen == -1:
             self.indexOfGreen = self.identify_green_startingfield(self.street)
 
-        ## get homefields and endfields
+        ## get home_fields and end_fields
         while True:
-            self.homefields, self.endfields = self.get_home_and_end(corners, center, self.street, self.indexOfGreen)
-            if len(self.homefields) == 4:
+            self.home_fields, self.end_fields = self.get_home_and_end(corners, center, self.street, self.indexOfGreen)
+            if len(self.home_fields) == 4:
                 break
         self.initialized = True
         while True:

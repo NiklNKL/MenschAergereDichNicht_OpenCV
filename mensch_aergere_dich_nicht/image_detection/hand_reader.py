@@ -12,7 +12,7 @@ from time import time
 import threading
 
 class HandReader(threading.Thread):
-    def __init__(self, timeThreshold, cap, confidence = 0.7, videoFeed = "gesture"):
+    def __init__(self, timeThreshold, cap, confidence = 0.7, video_feed = "gesture"):
         
         threading.Thread.__init__(self)
         # Initialising of the videocapture
@@ -26,7 +26,7 @@ class HandReader(threading.Thread):
         self.overlay = self.temp_overlay
 
         # Variable for gesture or counter stream
-        self.videoFeed = videoFeed
+        self.video_feed = video_feed
 
         # initialize mediapipe
         self.mpHands = mp.solutions.hands
@@ -319,9 +319,9 @@ class HandReader(threading.Thread):
         return self._stop_event.is_set()
 
 
-    def run(self, videoFeed="gesture"):
+    def run(self, video_feed="gesture"):
         while True:
-            self.videoFeed = videoFeed
+            self.video_feed = video_feed
             # Initialize the webcam for Hand Gesture Recognition Python proje
             self.frame = self.cap.frame
             self.x , self.y, self.c = self.frame.shape
@@ -339,7 +339,7 @@ class HandReader(threading.Thread):
             className = ''
             count = -1
 
-            if self.videoFeed == "gesture":
+            if self.video_feed == "gesture":
                 className, self.temp_overlay = self.getGesture(result, self.temp_overlay)
                 self.update_class(className)
 
@@ -353,7 +353,7 @@ class HandReader(threading.Thread):
                 cv2.putText(self.temp_overlay, "Detected Gesture: " + self.currentClass, (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0,0,255), 2, cv2.LINE_AA)
                 
-            elif self.videoFeed == "counter":
+            elif self.video_feed == "counter":
                 count, self.temp_overlay = self.getFingers(fingerResult, self.temp_overlay)
                 self.update_count(count)
                 cv2.putText(self.temp_overlay, "Detected Count: " + str(self.currentCount), (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
