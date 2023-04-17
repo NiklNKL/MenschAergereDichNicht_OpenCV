@@ -5,12 +5,15 @@ from ui import Ui
 from utilities import VideoStream
 from utilities import GameStatus
 import time
+from utilities import Fps
 
 def main():
 
+    fps_tracker = Fps("MainThread")
     dice_camera_id = 1
     hand_camera_id = 1
     board_camera_id = 1
+    prev_frame_time = 0
 
     print("\nStarting threads...")
 
@@ -97,9 +100,15 @@ def main():
     print(f"### Game has started ############################\n")
 
     while True:
+        ui_frame = fps_tracker.counter(ui_thread.frame, prev_frame_time, name="Main", corner=1)
+        prev_frame_time = time.time()
+        main_stats = fps_tracker.stats
         status = game_thread.game_status
-        time.sleep(0.1)
-        if status == GameStatus.QUIT or ui_thread.exit:
+        cv2.imshow(ui_thread.window_name, ui_frame)
+        key = cv2.waitKey(20)  
+                
+        if status == GameStatus.QUIT or key == 27:
+            cv2.destroyAllWindows()
             ui_stats = ui_thread.stats
             dice_stats = dice_thread.stats
             hand_stats = hand_thread.stats
@@ -119,7 +128,7 @@ def main():
             print("Process ran for: " + str(time.strftime("%Hh %Mm %Ss", time.gmtime((time.time()-start_time)))) + "\n")
             break
 
-    print(f"###### Statistics ######\n{ui_stats}\n{dice_stats}\n{hand_stats}\n{cap_stats}\n#########################\n")
+    print(f"###### Statistics ######\n{ui_stats}\n{dice_stats}\n{hand_stats}\n{cap_stats}\n{main_stats}\n#########################\n")
 
 if __name__ == "__main__":
     main()
