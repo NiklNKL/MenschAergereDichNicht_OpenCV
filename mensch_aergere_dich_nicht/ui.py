@@ -21,11 +21,14 @@ class Ui(threading.Thread):
         self.hand_cap = hand_cap
         self.board_cap = board_cap
 
+        
+
         self.board_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
 
         self.shape = (1920, 1080)
 
         self.window_name = "Mensch_aergere_dich_nicht"
+        self.frame = np.zeros((self.shape[0], self.shape[1], 3), np.uint8)
 
         self.dice_frame_shape = (int(self.shape[0]*0.4), int(self.shape[1]*0.425))
         self.hand_frame_shape = (int(self.shape[0]*0.4), int(self.shape[1]*0.425))
@@ -37,9 +40,7 @@ class Ui(threading.Thread):
         self.instruction_frame = np.full((self.instruction_frame_shape[1], self.instruction_frame_shape[0], 3), 255, np.uint8)
 
         self.use_img = use_img
-        self.exit = False
         
-
         self.prev_frame_time = 0
         self.fps_tracker = Fps("UI")
         self.stats = ""
@@ -178,14 +179,9 @@ class Ui(threading.Thread):
             stream = np.vstack((numpy_horizontal_upper, numpy_horizontal_lower))
             stream = self.fps_tracker.counter(stream, self.prev_frame_time, name="UI", corner=4)
             self.prev_frame_time = time()
-            cv2.imshow(self.window_name, stream)
-
-            key = cv2.waitKey(20)
-            if key == 27:  # exit on ESC
-                self.exit = True
-                self.stats = self.fps_tracker.stats
-                cv2.destroyAllWindows()
-                break
+            self.frame = stream
+            self.stats = self.fps_tracker.stats
+            
             if self.stopped():  
                 break
 

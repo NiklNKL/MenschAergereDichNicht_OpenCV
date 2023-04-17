@@ -11,7 +11,7 @@ class Fps():
         self.fps_array_sort = np.array([])
         self.stats = ""
         self.name = name
-        pass
+        self.debug = True
     
     def counter(self,frame, prev_frame_time, name=None, corner = 1):
 
@@ -55,7 +55,8 @@ class Fps():
         self.stats = f"# {self.name} FPS Stats: Average: {self.average_fps:.3f}, Min: {int(self.min_fps)}, Max: {int(self.max_fps)}"
 
         fps = str(fps)
-        frame = cv2.rectangle(frame, rec_start, rec_end, (255,255,255),-1)
-        frame = cv2.putText(frame, fps, (pos_x, pos_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        frame = cv2.putText(frame, name + ":", (pos_x, text_pos_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        if self.debug:
+            frame = cv2.rectangle(frame, rec_start, rec_end, (255,255,255),-1)
+            frame = cv2.putText(frame, fps, (pos_x, pos_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+            frame = cv2.putText(frame, name + ":", (pos_x, text_pos_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
         return frame
