@@ -8,9 +8,9 @@ import time
 
 def main():
 
-    dice_camera_id = 1
-    hand_camera_id = 1
-    board_camera_id = 1
+    dice_camera_id = 0
+    hand_camera_id = 0
+    board_camera_id = 0
 
     print("\nStarting threads...")
 
