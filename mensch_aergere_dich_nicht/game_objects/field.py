@@ -1,5 +1,5 @@
 class Field():
-	def __init__(self, imgPos:tuple, figure, streetIndex:int):
-		self.imgPos = imgPos
+	def __init__(self, img_pos:tuple, figure, street_index:int):
+		self.img_pos = img_pos
 		self.figure = figure
-		self.streetIndex = streetIndex # 0 - 43
+		self.street_index = street_index # 0 - 43

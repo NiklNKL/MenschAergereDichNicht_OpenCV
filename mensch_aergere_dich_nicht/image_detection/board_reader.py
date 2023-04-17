@@ -5,7 +5,7 @@ import threading
 import time
 
 class BoardReader(threading.Thread):
-    def __init__(self, cap, useImg=False) -> None:
+    def __init__(self, cap, use_img=False) -> None:
 
         threading.Thread.__init__(self)
         # Initialising of the videocapture
@@ -15,14 +15,14 @@ class BoardReader(threading.Thread):
         self.frame = self.cap.frame
 
         ## for testing purposes a single frame can be used
-        self.useImg = useImg
-        if self.useImg:
+        self.use_img = use_img
+        if self.use_img:
             self.frame = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
         
         self.street = None
-        self.indexOfGreen =  None
-        self.homefields = None
-        self.endfields = None
+        self.index_of_green =  None
+        self.home_fields = None
+        self.end_fields = None
 
         self.initialized = False
 
@@ -74,14 +74,14 @@ class BoardReader(threading.Thread):
         corners = np.squeeze(cv2.approxPolyDP(cnt, epsilon, True), axis=1)
 
         if not len(corners) == 4:
-            raise Exception("could not find four corners of playground")
+            raise Exception("Could not find four corners of playground")
         
         ## get center of playground
         x = [p[0] for p in corners]
         y = [p[1] for p in corners]
         center = (sum(x) / len(corners), sum(y) / len(corners))
 
-        print("finished playground detection")
+        print("Finished playground detection")
 
         return (corners, center)
 
@@ -151,11 +151,11 @@ class BoardReader(threading.Thread):
             angles.append([angle, x, y, r])
         sortedStreet = sorted(angles,key=lambda c: c[0])
         
-        print(f"finished street detection with {len(sortedStreet)}")
+        print(f"Finished street detection with {len(sortedStreet)}")
 
         return sortedStreet
 
-    def get_home_and_end(self, corners, center, street, indexOfGreen):
+    def get_home_and_end(self, corners, center, street, index_of_green):
         ## blur
         blurred = cv2.medianBlur(self.frame, 7)
 
@@ -169,7 +169,7 @@ class BoardReader(threading.Thread):
                                                 fields=32)
 
         ## order by angle with vector (center->green start)
-        green = street[indexOfGreen][1:]
+        green = street[index_of_green][1:]
         angles = []
         for x, y, r in detected_circles:
             angle = self.get_angle(green, center, (x,y))
@@ -179,8 +179,8 @@ class BoardReader(threading.Thread):
         ## shift index
         sortedStreet = np.roll(sortedStreet, (4,4,4,4))
 
-        ## get endfields and homefields
-        homefields, endfields  = [], []
+        ## get end_fields and home_fields
+        home_fields, end_fields  = [], []
         for i in range(0,32,8):
             homefield, endfield = [], []
 
@@ -197,15 +197,15 @@ class BoardReader(threading.Thread):
             if homefield[1][2]>homefield[2][2]:
                 homefield[[1,2]]=homefield[[2,1]]
 
-            homefields.append(homefield)
-            endfields.append(endfield)
+            home_fields.append(homefield)
+            end_fields.append(endfield)
 
         """
-        endfields = np.uint16(np.around(endfields))
-        homefields = np.uint16(np.around(homefields))
+        end_fields = np.uint16(np.around(end_fields))
+        home_fields = np.uint16(np.around(home_fields))
         for index, color in enumerate(["G","R","B","Y"]):
-            homefield = homefields[index]
-            endfield = endfields[index]
+            homefield = home_fields[index]
+            endfield = end_fields[index]
             for idx, (_, a, b, r) in enumerate(homefield):
             # a, b, r = pt[1], pt[2], pt[3]
             # Draw the circumference of the circle.
@@ -224,8 +224,8 @@ class BoardReader(threading.Thread):
         cv2.waitKey(0)
         """
 
-        print(f"finished non_street detection with {len(sortedStreet)} fields")
-        return homefields, endfields
+        print(f"Finished non_street detection with {len(sortedStreet)} fields")
+        return home_fields, end_fields
 
     def identify_green_startingfield(self, street):
         """
@@ -276,8 +276,8 @@ class BoardReader(threading.Thread):
     #         board = UiHandler.boardFrame
     #         normPos = game_logic.normalize_position(figure.player, figure.relPos)
 
-    #         normCord = BoardgameHandler.fields[normPos].imgPos
-    #         newCord = BoardgameHandler.fields[field].imgPos
+    #         normCord = BoardgameHandler.fields[normPos].img_pos
+    #         newCord = BoardgameHandler.fields[field].img_pos
             
     #         board = cv2.arrowedLine(board, normCord, newCord)
 
@@ -291,7 +291,8 @@ class BoardReader(threading.Thread):
     def run(self):
         self.temp_frame = self.cap.frame
         ## get playground
-        while True:
+        print("\nStarting playground detection...")
+        while True and not self.initialized:
             try:
                 corners, center = self.get_playground()
                 break
@@ -299,24 +300,26 @@ class BoardReader(threading.Thread):
                 print(e)
 
         ## get street
-        while True:
+        print("\nStarting street detection...")
+        while True and not self.initialized:   
             self.street = self.get_street(corners, center)
             if len(self.street) == 40:
                 break
         
         ## get green starting field
-        self.indexOfGreen = -1
-        while self.indexOfGreen == -1:
-            self.indexOfGreen = self.identify_green_startingfield(self.street)
+        print("\nStarting non-street detection...")
+        self.index_of_green = -1
+        while self.index_of_green == -1:
+            self.index_of_green = self.identify_green_startingfield(self.street)
 
-        ## get homefields and endfields
-        while True:
-            self.homefields, self.endfields = self.get_home_and_end(corners, center, self.street, self.indexOfGreen)
-            if len(self.homefields) == 4:
+        ## get home_fields and end_fields
+        while True and not self.initialized:
+            self.home_fields, self.end_fields = self.get_home_and_end(corners, center, self.street, self.index_of_green)
+            if len(self.home_fields) == 4:
                 break
         self.initialized = True
         while True:
-            self.frame = self.cap.frame
+            pass
             if self.stopped():
                 break
 

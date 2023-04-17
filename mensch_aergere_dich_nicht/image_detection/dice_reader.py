@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 from collections import deque
 import threading
-from time import time
+from time import time, sleep
+from utilities import Fps
 class DiceReader(threading.Thread):
     def __init__(self, cap):
 
@@ -14,7 +15,8 @@ class DiceReader(threading.Thread):
         self.frame = self.cap.frame
 
         self.prev_frame_time = 0
-        self.new_frame_time = 0
+        self.fps_tracker = Fps("DiceReader")
+        self.stats = ""
 
         self.min_threshold = 10                      # these values are used to filter our detector.
         self.max_threshold = 200                     # they can be tweaked depending on the camera distance, camera angle, ...
@@ -33,6 +35,7 @@ class DiceReader(threading.Thread):
         self.initialized = False
         
         self.eye_count = 0
+        
 
     def blob_params(self):
                         # declare filter parameters.
@@ -62,13 +65,10 @@ class DiceReader(threading.Thread):
             keypoints = detector.detect(self.frame)
             self.temp_overlay = cv2.drawKeypoints(self.temp_overlay, keypoints, np.array([]), (0, 0, 255),
                                           cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-            self.new_frame_time = time()
-            fps = 1/(self.new_frame_time-self.prev_frame_time)
-            self.prev_frame_time = self.new_frame_time
-            fps = int(fps)
-            fps = str(fps)
-            cv2.putText(self.temp_overlay, fps, (10, 700), cv2.FONT_HERSHEY_SIMPLEX, 3, (100, 255, 0), 3, cv2.LINE_AA)
-
+            
+            self.temp_overlay = self.fps_tracker.counter(self.temp_overlay, self.prev_frame_time, name="Dice", corner=2)
+            self.prev_frame_time = time()
+            
             if self.counter % 10 == 0:                                   # enter this block every 10 frames.
                 reading = len(keypoints)                            # 'reading' counts the number of keypoints (pips).
                 self.readings.append(reading)                            # record the reading from this frame.
@@ -77,12 +77,16 @@ class DiceReader(threading.Thread):
                 self.display.append(self.readings[-1])                    # ... then we have a valid reading.
 
             # if the most recent valid reading has changed, and it's something other than zero, then print it.
-            if self.display[-1] != self.display[-2] and self.display[-1] != 0:
+            if self.display[-1] != self.display[-2] and self.display[-1] != 0 and self.display[-1] <=6:
                self.eye_count = self.display[-1]
 
+            # self.eye_count = len(keypoints)
+
+            self.temp_overlay = cv2.putText(self.temp_overlay, f"Current Dice: {len(keypoints)}" ,(20, 300), cv2.FONT_HERSHEY_PLAIN, 4, (0, 0, 255), 3)
             self.counter += 1
             self.overlay = self.temp_overlay
             
             self.initialized = True
-            if self.stopped():
+            self.stats = self.fps_tracker.stats
+            if self.stopped(): 
                 break

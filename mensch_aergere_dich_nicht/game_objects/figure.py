@@ -2,7 +2,7 @@ class Figure():
 	def __init__(self, relPos:int, player, id:int):
 		self.relPos = relPos
 		self.player = player
-		self.id = id # 1-4
+		self.id = id # 0-3
 	
 	def get_position(self):
 		return self.relPos

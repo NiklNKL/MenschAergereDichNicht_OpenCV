@@ -1,9 +1,11 @@
 import threading
 import cv2
 from game_objects import Field, Player, Figure
+from utilities import GameStatus, RoundStatus, TurnStatus
+import time
 
 class Game(threading.Thread):
-	def __init__(self, DiceThread, HandThread, BoardThread) -> None:
+	def __init__(self, dice_thread, hand_thread, board_thread) -> None:
 
 		threading.Thread.__init__(self)
 
@@ -12,52 +14,59 @@ class Game(threading.Thread):
 		self.players = []
 		self.current_player = 0
 
-		self.DiceThread = DiceThread
-		self.HandThread = HandThread
-		self.BoardThread = BoardThread
+		self.current_figure_ids = []
+		self.selected_figure = 0
+
+		self.dice_thread = dice_thread
+		self.hand_thread = hand_thread
+		self.board_thread = board_thread
 
 		self._stop_event = threading.Event()
 
 		self.status = 0
 
+		self.game_status = GameStatus.INITIALIZING
+		self.round_status = RoundStatus.NO_ROUND
+		self.turn_status = TurnStatus.NO_TURN
+
 		self.initialized = False
 
 	def create_boardgame(self):
-		## create Field objects (streetIndex range [0,39])
-		for index, field in enumerate(self.BoardThread.street[self.BoardThread.indexOfGreen:] + self.BoardThread.street[:self.BoardThread.indexOfGreen]):
-			self.fields.append(Field(imgPos = field[1:4],
+		## create Field objects (street_index range [0,39])
+		for index, field in enumerate(self.board_thread.street[self.board_thread.index_of_green:] + self.board_thread.street[:self.board_thread.index_of_green]):
+			self.fields.append(Field(img_pos = field[1:4],
 											figure = None,
-											streetIndex = index))
+											street_index = index))
 		
 		## create Player objects
-		startField = 0
+		start_field = 0
 		for index, color in enumerate(["green", "red", "black", "yellow"]):
 			self.players.append(Player(color = color,
 												id = index,
-												startField = startField
+												start_field = start_field
 												))
 			
 			## create Figure objects for each player (id range [1,4])
-			for figureNum in range(1,5):
+			for figure_num in range(4):
 				figure = Figure(relPos = None,
 								player = self.players[-1],
-								id = figureNum)
+								id = figure_num)
 				self.figures.append(figure)
 				self.players[-1].figures.append(figure)
-			startField += 10
+			start_field += 10
 		
-		## move green's figure 1 to absPos 36 to test endfields
+		## move green's figure 1 to absPos 36 to test end_fields
 		#self.GameHandler.fields[36].figure = self.GameHandler.players[0].figures[0]
-		#self.GameHandler.players[0].figures[0].set_position(36, self.GameHandler.fields[36].imgPos, self.GameHandler.players[0].color, 1, UiHandler)
+		#self.GameHandler.players[0].figures[0].set_position(36, self.GameHandler.fields[36].img_pos, self.GameHandler.players[0].color, 1, UiHandler)
 
 		## move yellow's figure 1 to absPos 6 to test kick logic
 		#self.GameHandler.players[-1].figures[0].set_position(16)
 		#self.GameHandler.fields[6].figure = self.GameHandler.players[-1].figures[0]
 
-		## iterate through all players with their respective startfield index
+		## iterate through all players with their respective start_field index
 		for index, player in enumerate(self.players):
-			homefield = self.BoardThread.homefields[index]
-			endfield = self.BoardThread.endfields[index]
+			homefield = self.board_thread.home_fields[index]
+			endfield = self.board_thread.end_fields[index]
 
 			player.set_homefield(homefield)
 			player.set_endfield(endfield)
@@ -65,26 +74,69 @@ class Game(threading.Thread):
 		for figure in self.figures:
 			for count in range(0,4):
 				pass
-				# UiHandler.highlighting(figure.player.homefields[count].imgPos, figure.id, figure.player.color)
+				# UiHandler.highlighting(figure.player.home_fields[count].img_pos, figure.id, figure.player.color)
 
 		## check if everything was created correctly
-		for field in self.fields:
-			print({"imgPos": field.imgPos, "figure": field.figure, "streetIndex": field.streetIndex})
-		for player in self.players:
-			print({"color": player.color, "startField": player.startField, "finishField": player.finishField})
-		for figure in self.figures:
-			print({"relPos": figure.relPos, "team": figure.player, "item": figure.id})
-		print("finished preparations")
+		# for field in self.fields:
+		# 	print({"img_pos": field.img_pos, "figure": field.figure, "street_index": field.street_index})
+		# for player in self.players:
+		# 	print({"color": player.color, "start_field": player.start_field, "finish_field": player.finish_field})
+		# for figure in self.figures:
+		# 	print({"relPos": figure.relPos, "team": figure.player, "item": figure.id})
+		# print("finished preparations")
+
+	def wait_for_gesture(self, goal_gesture, second_goal_gesture = None):
+		self.hand_thread.video_feed = "gesture"
+		last_gesture = self.hand_thread.currentClass
+
+		while True and not self.stopped():
+			time.sleep(0.1)
+			current_gesture = self.hand_thread.currentClass
+			if current_gesture != last_gesture and current_gesture == goal_gesture:
+				return True
+			elif second_goal_gesture is not None: 
+				if current_gesture != last_gesture and current_gesture == second_goal_gesture:
+					return False
+			else:
+				last_gesture = current_gesture
+
+	def wait_for_count(self, possible_figure_ids):
+		self.hand_thread.video_feed = "counter"
+		last_count = self.hand_thread.currentCount
+
+		while True and not self.stopped():
+			time.sleep(0.1)
+			if last_count == 10 and self.hand_thread.currentCount-1 in possible_figure_ids:
+				return True
+			else:
+				last_count = self.hand_thread.currentCount
 
 	def current_turn(self, eye_count):
-		p = self.players[self.current_player]
+		player = self.players[self.current_player]
 
-		avail_moves = p.available_moves(eye_count)
-		if len(avail_moves) > 0: 
-			## Wenn Zug möglich, wähle einen aus
-			chosen_figure = self.choose_figure(avail_moves)
+		avail_moves = player.available_moves(eye_count)
+		fig_ids = []
+		for index, id in avail_moves:
+			fig_ids.append(index.id)
+
+		self.current_figure_ids = fig_ids
+
+		if len(avail_moves) > 0:
+			figure_accepted = False
+			while not figure_accepted and not self.stopped():
+				self.turn_status = TurnStatus.SELECT_FIGURE
+				## Wenn Zug möglich, wähle einen aus
+				chosen_figure = self.choose_figure(avail_moves)
+				self.turn_status = TurnStatus.SELECT_FIGURE_ACCEPT
+				figure_accepted = self.wait_for_gesture("thumbs up", "thumbs down")
+
+			self.turn_status = TurnStatus.MOVE_FIGURE
+			self.wait_for_gesture("thumbs up")
 			## führe Zug aus
-			self.move(p, chosen_figure, eye_count)
+			self.move(player, chosen_figure, eye_count)
+		else:
+			self.turn_status = TurnStatus.SELECT_FIGURE_SKIP
+			self.wait_for_gesture("thumbs up")
 
 	def move(self, p_current_player, p_chosen_figure, p_eye_count):
 		if p_chosen_figure.relPos is not None:
@@ -95,7 +147,7 @@ class Game(threading.Thread):
 			except IndexError:
 				## remove logic for endfield
 				endfieldPos = p_chosen_figure.relPos % 40
-				p_current_player.endfields[endfieldPos].figure = p_chosen_figure
+				p_current_player.end_fields[endfieldPos].figure = p_chosen_figure
 	
 		##new relative pos
 		newPos = self.calculate_new_pos(p_chosen_figure, p_eye_count)
@@ -113,35 +165,20 @@ class Game(threading.Thread):
 		except IndexError:
 			## move into endfield
 			endfieldPos = newPos % 40
-			field = p_current_player.endfields[endfieldPos]
+			field = p_current_player.end_fields[endfieldPos]
 		field.figure = p_chosen_figure
 
 		## set figure.relPos
 		print(f"Moved {p_chosen_figure.id} to {newPos}")
-		p_chosen_figure.set_position(newPos, field.imgPos, p_current_player.color, p_chosen_figure.id)
+		p_chosen_figure.set_position(newPos, field.img_pos, p_current_player.color, p_chosen_figure.id)
 
 	def choose_figure(self, available_moves):
+		
+		self.wait_for_count(self.current_figure_ids)
+		chosen_figure = self.hand_thread.currentCount-1
+		self.selected_figure = chosen_figure
 		# return chosen figure object
-		return available_moves[0][0]
-
-	def get_current_dice(self):
-		newDice = 0
-		while True and not self.stopped():
-			newClass = self.HandThread.currentClass
-			
-			newDice = self.DiceThread.eye_count
-			# print(f"{newClass}  {newDice}")
-			# self.BoardHandler.run(self.UiHandler)
-			if newDice in range(1,7):
-				if newClass == "thumbs up" :
-					print(f"retreived {newDice}")
-					break
-			
-			## needed to show video feed constantly
-			if cv2.waitKey(1) == ord('q'):
-				raise Exception("get_current_dice was cancelled")
-			
-		return newDice
+		return available_moves[chosen_figure][0]
 
 	def calculate_new_pos(self, p_chosen_figure, p_eye_count):
 		newPos = 0
@@ -156,7 +193,8 @@ class Game(threading.Thread):
 		field = self.fields[absPos]
 	
 		if field.figure is not None:
-			field.figure.set_position(None, field.imgPos, field.figure.player.color, field.figure.id)
+			field.figure.set_position(None, field.img_pos, field.figure.player.color, field.figure.id)
+			self.turn_status = TurnStatus.KICK
 
 	def normalize_position(self, p_player_id: int, p_position: int):
 		"""
@@ -175,6 +213,18 @@ class Game(threading.Thread):
 
 		return (p_position + p_player_id * 10) % 40
 
+	def get_status_by_player_id(self, player_id):
+		if player_id == 0:
+			return RoundStatus.PLAYER_GREEN
+		elif player_id == 1:
+			return RoundStatus.PLAYER_RED
+		elif player_id == 2:
+			return RoundStatus.PLAYER_YELLOW
+		elif player_id == 3:
+			return RoundStatus.PLAYER_BLACK
+		else:
+			return None
+
 	def stop(self):
 		self._stop_event.set()
 
@@ -186,38 +236,60 @@ class Game(threading.Thread):
 		self.create_boardgame()
 		
 		self.initialized = True
+		self.game_status = GameStatus.START
 
-		while True:
-			p = self.players[self.current_player]
-			print(f"It's {p}'s turn!")
+		self.wait_for_gesture("thumbs up")
+
+		self.game_status = GameStatus.RUNNING
+
+		while True and not self.stopped():
+			
+			player = self.players[self.current_player]
+			print(f"It's {player.color}'s turn!")
+
+			self.round_status = self.get_status_by_player_id(player.id)
+
+			self.turn_status = TurnStatus.PLAYER_READY
+			self.wait_for_gesture("thumbs up")
+
+			
 
 			## if no figures are on the street and possible endfield figures are at the end
-			if not p.has_movable_figures():
-				for turn in range(3):
-					try:
-						eye_count = self.get_current_dice()
-					except Exception as e:
-						print(e)
-						return 1
+			if not player.has_movable_figures():
+				for turn in range(4):
+					self.turn_status = TurnStatus.ROLL_DICE
+					if turn == 3:
+						self.turn_status.SELECT_FIGURE_SKIP
+						self.wait_for_gesture("thumbs up")
+						break
 
+					self.wait_for_gesture("thumbs up")
+					eye_count = self.dice_thread.eye_count
+					
+					
 					if eye_count == 6:
 						self.current_turn(eye_count)
 						break
 			
-			while p.has_movable_figures() and not self.stopped():
-				try:
-					eye_count = self.get_current_dice()
-				except Exception as e:
-					print(e)
-					return 1
+			while player.has_movable_figures() and not self.stopped():
+				self.turn_status = TurnStatus.ROLL_DICE
+				self.wait_for_gesture("thumbs up")
+				eye_count = self.dice_thread.eye_count
+				
+
 
 				self.current_turn(eye_count)
 				if eye_count != 6:
 					break
-		
-			self.status = p.check_all_finish()
-			if self.status != 1:
+			 
+			if not player.all_figures_finished():
 				self.current_player = (self.current_player + 1) %4
+			else:
+				self.game_status = GameStatus.FINISHED
+				self.wait_for_gesture("peace")
+				self.game_status = GameStatus.SHOULD_QUIT
+				self.wait_for_gesture("thumbs up")
+				self.game_status = GameStatus.QUIT
 
 			if self.stopped():
 				break
