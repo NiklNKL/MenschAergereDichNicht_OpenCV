@@ -5,7 +5,7 @@ from time import time
 from utilities import Fps
 
 class Ui(threading.Thread):
-    def __init__(self, dice_thread, hand_thread, board_thread, game_thread, dice_cap, hand_cap, board_cap, useImg = False) -> None:
+    def __init__(self, dice_thread, hand_thread, board_thread, game_thread, dice_cap, hand_cap, board_cap, use_img = False) -> None:
 
         threading.Thread.__init__(self)
         self._stop_event = threading.Event()
@@ -21,6 +21,8 @@ class Ui(threading.Thread):
         self.hand_cap = hand_cap
         self.board_cap = board_cap
 
+        self.board_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
+
         self.shape = (1920, 1080)
 
         self.window_name = "Mensch_aergere_dich_nicht"
@@ -34,13 +36,13 @@ class Ui(threading.Thread):
         self.terminal_frame = np.full((self.terminal_frame_shape[1], self.terminal_frame_shape[0], 3), 255, np.uint8)
         self.instruction_frame = np.full((self.instruction_frame_shape[1], self.instruction_frame_shape[0], 3), 255, np.uint8)
 
-        self.useImg = useImg
-        self.end_time = 0
+        self.use_img = use_img
         self.exit = False
+        
 
         self.prev_frame_time = 0
-        self.fps_tracker = Fps()
-
+        self.fps_tracker = Fps("UI")
+        self.stats = ""
 
     def prepare_frame(self, cap, shape, overlay=None):
         frame = cap.frame
@@ -78,7 +80,23 @@ class Ui(threading.Thread):
     def update_instruction(self):
         self.instruction_frame = np.full((self.instruction_frame_shape[1], self.instruction_frame_shape[0], 3), 255, np.uint8)
         x,y = self.instruction_frame_shape
+        
+        self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.3), y), (int(0+x*0.7), int(y-y*0.2)), (0,0,0), 2)
+        if self.game_thread.turn_status.value.get("continue") == True:
+            cv2.putText(self.instruction_frame, "Fortfahren:" ,(int(0+x*0.32), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
+        if self.game_thread.turn_status.value.get("back") == True:
+            cv2.putText(self.instruction_frame, "Zurueck:" ,(int(0+x*0.6), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
+        if self.game_thread.turn_status.value.get("quit") == True:
+            cv2.putText(self.instruction_frame, "Spiel beenden:" ,(int(0+x*0.45), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
+            
 
+        text = self.get_correct_instruction()
+        text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_PLAIN, 3, 2)[0]
+        text_x = int((self.instruction_frame.shape[1] - text_size[0]) / 2)
+        text_y = int((self.instruction_frame.shape[0] + text_size[1]) / 2)
+
+        cv2.putText(self.instruction_frame, text ,(text_x,text_y), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
+        
         if str(self.game_thread.round_status.name) == "PLAYER_GREEN":
             color = (5,168,35)
         elif str(self.game_thread.round_status.name) == "PLAYER_RED":
@@ -94,17 +112,21 @@ class Ui(threading.Thread):
         self.instruction_frame = cv2.rectangle(self.instruction_frame, (0, 0), (x, y), color, 5) 
         self.instruction_frame = cv2.putText(self.instruction_frame, "Game HUB" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, 1.2, (255, 255, 255), 1)
 
-        text = self.get_correct_instruction()
-        text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_PLAIN, 3, 2)[0]
-        text_x = int((self.instruction_frame.shape[1] - text_size[0]) / 2)
-        text_y = int((self.instruction_frame.shape[0] + text_size[1]) / 2)
-        cv2.putText(self.instruction_frame, text ,(text_x,text_y), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
-
     def get_correct_instruction(self):
-        if str(self.game_thread.game_status) == "GameStatus.RUNNING":
-            return self.game_thread.turn_status.value
+        if str(self.game_thread.turn_status.name) == "ROLL_DICE":
+            return f"Du hast eine {self.dice_thread.eye_count} gewuerfelt."
+        elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE":
+            return f"Du hast {self.game_thread.current_figure_ids} Figuren zur Auswahl."
+        elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE_ACCEPT":
+            return f"Du hast Figur {self.game_thread.selected_figure} gewaehlt."
+        elif str(self.game_thread.turn_status.name) == "KICK":
+            return f"Du hast eine Figur von Spieler X geschlagen"
         else:
-            return self.game_thread.game_status.value
+            return self.game_thread.turn_status.value.get("text")
+        # if str(self.game_thread.game_status) == "GameStatus.RUNNING":
+        #     
+        # else:
+        #     return self.game_thread.game_status.value
         
     def stop(self):
         self._stop_event.set()
@@ -115,8 +137,11 @@ class Ui(threading.Thread):
     def draw_frame(self, frame, text, is_board = False):
         y,x,c = frame.shape
         if is_board:
-            top_bar_width = int(0+y*0.05)
-            text_y = int(0+y*0.03)
+            top_bar_width = int(0+y*0.055)
+            text_y = int(0+y*0.038)
+            frame = cv2.rectangle(frame, (0, int(y-y*0.025)), (int(0+x*0.65), y), (0,0,0), 2)
+            frame = cv2.rectangle(frame, (0, int(y-y*0.025)), (int(0+x*0.65), y), (255,255,255), -1)
+            frame = cv2.putText(frame, "Ein Projekt von Jan Schurkemeyer, Mohamed El Bahar, Dominik Ruth, Simon Schruender und Jan Niklas Ewert", (int(0+x*0.005), int(y-y*0.008)), cv2.FONT_HERSHEY_PLAIN, 0.8, (0,0,0),1)
         else:
             top_bar_width = int(0+y*0.1)
             text_y = int(0+y*0.07)
@@ -129,9 +154,8 @@ class Ui(threading.Thread):
         while True:
             self.update_instruction()
             self.update_terminal()
-            if self.useImg:
-                frame = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
-                board_frame = cv2.resize(frame, self.board_frame_shape)
+            if self.use_img:
+                board_frame = cv2.resize(self.board_image, self.board_frame_shape)
             else:
                 board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape)
 
@@ -158,11 +182,11 @@ class Ui(threading.Thread):
 
             key = cv2.waitKey(20)
             if key == 27:  # exit on ESC
-                self.end_time = time()
                 self.exit = True
+                self.stats = self.fps_tracker.stats
                 cv2.destroyAllWindows()
                 break
-            if self.stopped():
+            if self.stopped():  
                 break
 
 

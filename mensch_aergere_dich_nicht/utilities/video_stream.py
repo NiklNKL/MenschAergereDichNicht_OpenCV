@@ -21,7 +21,8 @@ class VideoStream(threading.Thread):
         self.frame = self.temp_frame
 
         self.prev_frame_time = 0
-        self.fps_tracker = Fps()
+        self.fps_tracker = Fps("VideoStream")
+        self.stats = ""
 
     def stop(self):
         cv2.VideoCapture(self.cap_id).release()
@@ -39,5 +40,6 @@ class VideoStream(threading.Thread):
 
             self.frame = self.temp_frame
             self.initialized = True
+            self.stats = self.fps_tracker.stats
             if self.stopped():
                 break

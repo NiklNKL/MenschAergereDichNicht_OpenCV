@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from collections import deque
 import threading
-from time import time
+from time import time, sleep
 from utilities import Fps
 class DiceReader(threading.Thread):
     def __init__(self, cap):
@@ -15,7 +15,8 @@ class DiceReader(threading.Thread):
         self.frame = self.cap.frame
 
         self.prev_frame_time = 0
-        self.fps_tracker = Fps()
+        self.fps_tracker = Fps("DiceReader")
+        self.stats = ""
 
         self.min_threshold = 10                      # these values are used to filter our detector.
         self.max_threshold = 200                     # they can be tweaked depending on the camera distance, camera angle, ...
@@ -34,6 +35,7 @@ class DiceReader(threading.Thread):
         self.initialized = False
         
         self.eye_count = 0
+        
 
     def blob_params(self):
                         # declare filter parameters.
@@ -78,9 +80,13 @@ class DiceReader(threading.Thread):
             if self.display[-1] != self.display[-2] and self.display[-1] != 0 and self.display[-1] <=6:
                self.eye_count = self.display[-1]
 
+            # self.eye_count = len(keypoints)
+
+            self.temp_overlay = cv2.putText(self.temp_overlay, f"Current Dice: {len(keypoints)}" ,(20, 300), cv2.FONT_HERSHEY_PLAIN, 4, (0, 0, 255), 3)
             self.counter += 1
             self.overlay = self.temp_overlay
             
             self.initialized = True
-            if self.stopped():
+            self.stats = self.fps_tracker.stats
+            if self.stopped(): 
                 break

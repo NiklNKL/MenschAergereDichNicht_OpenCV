@@ -8,7 +8,7 @@ import mediapipe as mp
 import tensorflow as tf
 from tensorflow import keras
 from keras.models import load_model
-from time import time
+from time import time, sleep
 import threading
 from utilities import Fps
 
@@ -61,7 +61,8 @@ class HandReader(threading.Thread):
         self.count_last_update_time = time()
 
         self.prev_frame_time = 0
-        self.fps_tracker = Fps()
+        self.fps_tracker = Fps("HandReader")
+        self.stats = ""
 
         self.initialized = False
 
@@ -320,9 +321,8 @@ class HandReader(threading.Thread):
         return self._stop_event.is_set()
 
 
-    def run(self, video_feed="gesture"):
+    def run(self):
         while True:
-            self.video_feed = video_feed
             # Initialize the webcam for Hand Gesture Recognition Python proje
             self.frame = self.cap.frame
             self.x , self.y, self.c = self.frame.shape
@@ -362,5 +362,6 @@ class HandReader(threading.Thread):
             self.overlay = self.temp_overlay
             # UiHandler.update(handFrame = self.frame)
             self.initialized = True
+            self.stats = self.fps_tracker.stats
             if self.stopped():
                 break

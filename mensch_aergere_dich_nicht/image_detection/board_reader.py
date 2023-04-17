@@ -5,7 +5,7 @@ import threading
 import time
 
 class BoardReader(threading.Thread):
-    def __init__(self, cap, useImg=False) -> None:
+    def __init__(self, cap, use_img=False) -> None:
 
         threading.Thread.__init__(self)
         # Initialising of the videocapture
@@ -15,12 +15,12 @@ class BoardReader(threading.Thread):
         self.frame = self.cap.frame
 
         ## for testing purposes a single frame can be used
-        self.useImg = useImg
-        if self.useImg:
+        self.use_img = use_img
+        if self.use_img:
             self.frame = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
         
         self.street = None
-        self.indexOfGreen =  None
+        self.index_of_green =  None
         self.home_fields = None
         self.end_fields = None
 
@@ -155,7 +155,7 @@ class BoardReader(threading.Thread):
 
         return sortedStreet
 
-    def get_home_and_end(self, corners, center, street, indexOfGreen):
+    def get_home_and_end(self, corners, center, street, index_of_green):
         ## blur
         blurred = cv2.medianBlur(self.frame, 7)
 
@@ -169,7 +169,7 @@ class BoardReader(threading.Thread):
                                                 fields=32)
 
         ## order by angle with vector (center->green start)
-        green = street[indexOfGreen][1:]
+        green = street[index_of_green][1:]
         angles = []
         for x, y, r in detected_circles:
             angle = self.get_angle(green, center, (x,y))
@@ -276,8 +276,8 @@ class BoardReader(threading.Thread):
     #         board = UiHandler.boardFrame
     #         normPos = game_logic.normalize_position(figure.player, figure.relPos)
 
-    #         normCord = BoardgameHandler.fields[normPos].imgPos
-    #         newCord = BoardgameHandler.fields[field].imgPos
+    #         normCord = BoardgameHandler.fields[normPos].img_pos
+    #         newCord = BoardgameHandler.fields[field].img_pos
             
     #         board = cv2.arrowedLine(board, normCord, newCord)
 
@@ -308,13 +308,13 @@ class BoardReader(threading.Thread):
         
         ## get green starting field
         print("\nStarting non-street detection...")
-        self.indexOfGreen = -1
-        while self.indexOfGreen == -1:
-            self.indexOfGreen = self.identify_green_startingfield(self.street)
+        self.index_of_green = -1
+        while self.index_of_green == -1:
+            self.index_of_green = self.identify_green_startingfield(self.street)
 
         ## get home_fields and end_fields
         while True and not self.initialized:
-            self.home_fields, self.end_fields = self.get_home_and_end(corners, center, self.street, self.indexOfGreen)
+            self.home_fields, self.end_fields = self.get_home_and_end(corners, center, self.street, self.index_of_green)
             if len(self.home_fields) == 4:
                 break
         self.initialized = True

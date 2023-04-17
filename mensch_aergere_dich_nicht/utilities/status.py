@@ -16,12 +16,12 @@ class RoundStatus(Enum):
     NO_ROUND = "Keine Runde aktiv"
     
 class TurnStatus(Enum):
-    NO_TURN = "Kein Zug aktiv"
-    PLAYER_READY = "Daumen hoch 👍, wenn du bereit bist und würfle🎲 anschließend!"
-    ROLL_DICE = "Du hast eine X gewürfelt. Fortfahren: 👍 | Zurück: 👎"
-    SELECT_FIGURE = "Du hast X Figuren zur Auswahl. Zeige die Nummer der Figur mit einer Hand ✋ an und bestätige mit einem Daumen hoch!"
-    SELECT_FIGURE_SKIP = "Du hast versagt. Akzeptiere das Ergebnis: "
-    SELECT_FIGURE_ACCEPT = "Du hast Figur X ausgewählt. Fortfahren: 👍 | Zurück: 👎"
-    MOVE_FIGURE = "Bewege Figur X und bestätige mit: 👍"
-    KICK = "Du hast eine Figur von Player X geschlagen. Weiter so!"
+    NO_TURN = {"text":"Starte das Spiel!", "back": False, "continue": False, "quit": False}
+    PLAYER_READY =  {"text":"Fortfahren und wuerfeln...", "back": False, "continue": True, "quit": True}
+    ROLL_DICE =  {"text":"Wrong Text", "back": True, "continue": True, "quit": True}
+    SELECT_FIGURE =  {"text":"Du hast X Figuren zur Auswahl. Zeige die Nummer der Figur mit einer Hand an und bestätige mit einem Daumen hoch!", "back": True, "continue": True, "quit": True}
+    SELECT_FIGURE_SKIP =  {"text":"Du hast versagt. Akzeptiere das Ergebnis: ", "back": False, "continue": True, "quit": True}
+    SELECT_FIGURE_ACCEPT =  {"text":"Du hast Figur X ausgewaehlt. Fortfahren: | Zurück:", "back": True, "continue": True, "quit": True}
+    MOVE_FIGURE =  {"text":"Bewege Figur X und bestaetige mit:", "back": False, "continue": True, "quit": True}
+    KICK =  {"text":"Du hast eine Figur von Player X geschlagen. Weiter so!", "back": False, "continue": False, "quit": False}
 

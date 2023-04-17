@@ -2,6 +2,7 @@ import threading
 import cv2
 from game_objects import Field, Player, Figure
 from utilities import GameStatus, RoundStatus, TurnStatus
+import time
 
 class Game(threading.Thread):
 	def __init__(self, dice_thread, hand_thread, board_thread) -> None:
@@ -12,6 +13,9 @@ class Game(threading.Thread):
 		self.figures = []
 		self.players = []
 		self.current_player = 0
+
+		self.current_figure_ids = []
+		self.selected_figure = 0
 
 		self.dice_thread = dice_thread
 		self.hand_thread = hand_thread
@@ -28,11 +32,11 @@ class Game(threading.Thread):
 		self.initialized = False
 
 	def create_boardgame(self):
-		## create Field objects (streetIndex range [0,39])
-		for index, field in enumerate(self.board_thread.street[self.board_thread.indexOfGreen:] + self.board_thread.street[:self.board_thread.indexOfGreen]):
-			self.fields.append(Field(imgPos = field[1:4],
+		## create Field objects (street_index range [0,39])
+		for index, field in enumerate(self.board_thread.street[self.board_thread.index_of_green:] + self.board_thread.street[:self.board_thread.index_of_green]):
+			self.fields.append(Field(img_pos = field[1:4],
 											figure = None,
-											streetIndex = index))
+											street_index = index))
 		
 		## create Player objects
 		start_field = 0
@@ -53,7 +57,7 @@ class Game(threading.Thread):
 		
 		## move green's figure 1 to absPos 36 to test end_fields
 		#self.GameHandler.fields[36].figure = self.GameHandler.players[0].figures[0]
-		#self.GameHandler.players[0].figures[0].set_position(36, self.GameHandler.fields[36].imgPos, self.GameHandler.players[0].color, 1, UiHandler)
+		#self.GameHandler.players[0].figures[0].set_position(36, self.GameHandler.fields[36].img_pos, self.GameHandler.players[0].color, 1, UiHandler)
 
 		## move yellow's figure 1 to absPos 6 to test kick logic
 		#self.GameHandler.players[-1].figures[0].set_position(16)
@@ -70,11 +74,11 @@ class Game(threading.Thread):
 		for figure in self.figures:
 			for count in range(0,4):
 				pass
-				# UiHandler.highlighting(figure.player.home_fields[count].imgPos, figure.id, figure.player.color)
+				# UiHandler.highlighting(figure.player.home_fields[count].img_pos, figure.id, figure.player.color)
 
 		## check if everything was created correctly
 		# for field in self.fields:
-		# 	print({"imgPos": field.imgPos, "figure": field.figure, "streetIndex": field.streetIndex})
+		# 	print({"img_pos": field.img_pos, "figure": field.figure, "street_index": field.street_index})
 		# for player in self.players:
 		# 	print({"color": player.color, "start_field": player.start_field, "finish_field": player.finish_field})
 		# for figure in self.figures:
@@ -86,6 +90,7 @@ class Game(threading.Thread):
 		last_gesture = self.hand_thread.currentClass
 
 		while True and not self.stopped():
+			time.sleep(0.1)
 			current_gesture = self.hand_thread.currentClass
 			if current_gesture != last_gesture and current_gesture == goal_gesture:
 				return True
@@ -100,17 +105,21 @@ class Game(threading.Thread):
 		last_count = self.hand_thread.currentCount
 
 		while True and not self.stopped():
+			time.sleep(0.1)
 			if last_count == 10 and self.hand_thread.currentCount-1 in possible_figure_ids:
 				return True
 			else:
 				last_count = self.hand_thread.currentCount
 
-
-
 	def current_turn(self, eye_count):
 		player = self.players[self.current_player]
 
 		avail_moves = player.available_moves(eye_count)
+		fig_ids = []
+		for index, id in avail_moves:
+			fig_ids.append(index.id)
+
+		self.current_figure_ids = fig_ids
 
 		if len(avail_moves) > 0:
 			figure_accepted = False
@@ -161,35 +170,15 @@ class Game(threading.Thread):
 
 		## set figure.relPos
 		print(f"Moved {p_chosen_figure.id} to {newPos}")
-		p_chosen_figure.set_position(newPos, field.imgPos, p_current_player.color, p_chosen_figure.id)
+		p_chosen_figure.set_position(newPos, field.img_pos, p_current_player.color, p_chosen_figure.id)
 
 	def choose_figure(self, available_moves):
-		possible_figure_ids = []
-		for index, id in available_moves:
-			possible_figure_ids.append(available_moves[index][0].id)
-		self.wait_for_count(possible_figure_ids)
-		chosen_figure = self.hand_thread.count-1
+		
+		self.wait_for_count(self.current_figure_ids)
+		chosen_figure = self.hand_thread.currentCount-1
+		self.selected_figure = chosen_figure
 		# return chosen figure object
 		return available_moves[chosen_figure][0]
-
-	def get_current_dice(self):
-		newDice = 0
-		while True and not self.stopped():
-			newClass = self.hand_thread.currentClass
-			
-			newDice = self.dice_thread.eye_count
-			# print(f"{newClass}  {newDice}")
-			# self.BoardHandler.run(self.UiHandler)
-			if newDice in range(1,7):
-				if newClass == "thumbs up" :
-					print(f"retreived {newDice}")
-					break
-			
-			## needed to show video feed constantly
-			if cv2.waitKey(1) == ord('q'):
-				raise Exception("get_current_dice was cancelled")
-			
-		return newDice
 
 	def calculate_new_pos(self, p_chosen_figure, p_eye_count):
 		newPos = 0
@@ -204,7 +193,7 @@ class Game(threading.Thread):
 		field = self.fields[absPos]
 	
 		if field.figure is not None:
-			field.figure.set_position(None, field.imgPos, field.figure.player.color, field.figure.id)
+			field.figure.set_position(None, field.img_pos, field.figure.player.color, field.figure.id)
 			self.turn_status = TurnStatus.KICK
 
 	def normalize_position(self, p_player_id: int, p_position: int):
@@ -277,6 +266,7 @@ class Game(threading.Thread):
 					self.wait_for_gesture("thumbs up")
 					eye_count = self.dice_thread.eye_count
 					
+					
 					if eye_count == 6:
 						self.current_turn(eye_count)
 						break
@@ -285,6 +275,7 @@ class Game(threading.Thread):
 				self.turn_status = TurnStatus.ROLL_DICE
 				self.wait_for_gesture("thumbs up")
 				eye_count = self.dice_thread.eye_count
+				
 
 
 				self.current_turn(eye_count)

@@ -15,6 +15,7 @@ def main():
     print("\nStarting threads...")
 
     start_time = time.time()
+    new_time = start_time
 
     # Nur wichtig, wenn wir alles über eine Kamera laufen lassen
     if dice_camera_id == hand_camera_id == board_camera_id:
@@ -43,13 +44,14 @@ def main():
         while not (dice_cap.initialized and hand_cap.initialized and board_cap.initialized):
             pass
 
-    print("\nWe got all the frames! It took: " + str(time.time()-start_time)+" seconds.\n")
+    print(f"\nWe got all the frames! It took: {(time.time()-new_time):.3f} seconds.\n")
+    new_time = time.time()
 
     dice_thread = DiceReader(cap=dice_cap)
     dice_thread.name = "DiceReaderThread"
     hand_thread = HandReader(timeThreshold = 2, cap=hand_cap)
     hand_thread.name = "HandReaderThread"
-    board_thread = BoardReader(cap=board_cap, useImg=True)
+    board_thread = BoardReader(cap=board_cap, use_img=True)
     board_thread.name = "BoardReaderThread"
 
     game_thread = Game(dice_thread, hand_thread, board_thread)
@@ -62,7 +64,7 @@ def main():
                    dice_cap = dice_cap,
                    hand_cap = hand_cap,
                    board_cap = board_cap,
-                   useImg = True)
+                   use_img = True)
     ui_thread.name = "UiThread"
 
     
@@ -71,23 +73,36 @@ def main():
     board_thread.start()
     while not (dice_thread.initialized and hand_thread.initialized and board_thread.initialized):
         pass
-    print("\nAll cam_threads initialized! It took: " + str(time.time()-start_time) + " seconds.\n")
+    print(f"\nAll cam_threads initialized! It took: {(time.time()-new_time):.3f} seconds.\n")
+    new_time = time.time()
 
     game_thread.start()
     
     while not game_thread.initialized:
         pass
 
-    print("game_thread initialized! It took: " + str(time.time()-start_time) + " seconds.\n")
+    print(f"game_thread initialized! It took: {(time.time()-new_time):.3f} seconds.\n")
+    new_time = time.time()
+
+    board_thread.stop()
+    while not board_thread.stopped():
+        pass
+    
+    print(f"board_thread stopped! It took: {(time.time()-new_time):.3f} seconds.\n")
+    new_time = time.time()
 
     ui_thread.start()
 
+    print(f"ui_thread started! It took: {(time.time()-new_time):.3f} seconds.\n")
+    print(f"### Game has started ############################\n")
+
     while True:
-        # status = LogicHandler.current_gesture()
-        time.sleep(5)
         status = game_thread.game_status
+        time.sleep(0.1)
         if status == GameStatus.QUIT or ui_thread.exit:
-            end_time = ui_thread.end_time
+            ui_stats = ui_thread.stats
+            dice_stats = dice_thread.stats
+            hand_stats = hand_thread.stats
             ui_thread.stop()
             game_thread.stop()
             dice_thread.stop()
@@ -95,14 +110,16 @@ def main():
             board_thread.stop()
             if dice_camera_id == hand_camera_id == board_camera_id:
                 cap.stop()
+                cap_stats = cap.stats
             else:
                 dice_cap.stop()
                 hand_cap.stop()
                 board_cap.stop()
-            print("\nProcess quit!\n")
-            print("Process ran for: " + str((time.time()-start_time)/60) + " minutes!\n")
+            print("\n### Process quit!\n\n#################################\n")
+            print("Process ran for: " + str(time.strftime("%Hh %Mm %Ss", time.gmtime((time.time()-start_time)))) + "\n")
             break
 
-    print("Shutdown took: " + str(time.time()-end_time) + " seconds.\n")
+    print(f"###### Statistics ######\n{ui_stats}\n{dice_stats}\n{hand_stats}\n{cap_stats}\n#########################\n")
+
 if __name__ == "__main__":
     main()

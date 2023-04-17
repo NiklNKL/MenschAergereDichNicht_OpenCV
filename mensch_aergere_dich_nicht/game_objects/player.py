@@ -12,10 +12,10 @@ class Player():
 		self.home_fields = None
 
 	def set_homefield(self, homefield):
-		self.home_fields = [Field(imgPos=(x[1],x[2],x[3]), figure=self.figures[id],streetIndex=None) for id, x in enumerate(homefield)]
+		self.home_fields = [Field(img_pos=(x[1],x[2],x[3]), figure=self.figures[id],street_index=None) for id, x in enumerate(homefield)]
 
 	def set_endfield(self, endfield):
-		self.end_fields = [Field(imgPos=(x[1],x[2],x[3]), figure=None,streetIndex=None) for x in endfield]
+		self.end_fields = [Field(img_pos=(x[1],x[2],x[3]), figure=None,street_index=None) for x in endfield]
 
 	# Checks whether there are movable figures on the field
 	def has_movable_figures(self):
@@ -99,11 +99,11 @@ class Player():
 			# 	print(position)
 			# 	try:
 			# 		abs_pos = super().normalize_position(f.player.id, position)
-			# 		coordinates = self.GameHandler.fields[abs_pos].imgPos
+			# 		coordinates = self.GameHandler.fields[abs_pos].img_pos
 			# 	except IndexError:
 			# 		## remove logic for endfield
 			# 		endfieldPos = position % 40
-			# 		coordinates = f.player.end_fields[endfieldPos].imgPos
+			# 		coordinates = f.player.end_fields[endfieldPos].img_pos
 
 			# 	print(coordinates)
 			# 	UiHandler.highlighting(coordinates, self.figures.index, self.color)
