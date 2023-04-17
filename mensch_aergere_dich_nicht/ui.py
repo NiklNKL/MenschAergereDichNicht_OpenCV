@@ -152,35 +152,53 @@ class Ui(threading.Thread):
     
     def highlighting(self):
         
-        frame = np.zeros_like(self.board_cap, dtype=np.uint8)
+        frame = np.zeros_like(self.board_image, dtype=np.uint8)
 
-        for figure in self.game_thread.figures:
-            coordinatesRel = figure.get_position()
+        for i, figure in enumerate(self.game_thread.figures):
+            coordinates_rel = figure.get_position()
             idx = figure.id
-            coordinates = self.game_thread.normalize_position(figure.player.id, coordinatesRel)
+            try:
+                field_index = self.game_thread.normalize_position(figure.player.id, coordinates_rel)
+                coordinates = self.game_thread.fields[field_index].img_pos
+            except IndexError:
+                if coordinates_rel == None:
+                    index = i % 4
+                    coordinates = figure.player.home_fields[index].img_pos
+                else:
+                    index = i % 4
+                    coordinates = figure.player.end_fields[index].img_pos
 
-            radius = coordinates.pop()
+            radius = int(coordinates[-1])
+
+            coordinates = coordinates[:-1]
 
             if figure.player.color == "green":
-                highlighting_color = (0, 100, 0)
+                highlighting_color = (0, 150, 0)
             elif figure.player.color == "red":
-                highlighting_color = (0, 0, 238)
+                highlighting_color = (0, 0, 255)
             elif figure.player.color == "black":
-                highlighting_color = (0, 0, 0)
+                highlighting_color = (255, 255, 255)
             else:
                 highlighting_color = (0, 215, 255)
 
-            cv2.circle(frame, coordinates, radius, highlighting_color, 5)
+
+            #wenn turnstatus = select figure dann eye count abfragen
+            #dann available moves anzeigen
+            #roundstatus zeigt an welcher spieler dran ist
+
+            cv2.circle(frame, (int(coordinates[0]), int(coordinates[1])), radius, highlighting_color, 20)
 
             text_font = cv2.FONT_HERSHEY_DUPLEX
             text_scale = 1.5
-            text_thickness = 2
-            text = idx
+            text_thickness = 10
+            text = str(idx+1)
 
             text_size, _ = cv2.getTextSize(text, text_font, text_scale, text_thickness)
-            text_origin = (coordinates[0] - text_size[0] // 2, coordinates[1] + text_size[1] // 2)
+            text_origin = (int(coordinates[0]) - text_size[0] // 2, int(coordinates[1]) + text_size[1] // 2)
 
             cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness, cv2.LINE_AA)
+        
+        return frame
 
 
 
@@ -191,7 +209,8 @@ class Ui(threading.Thread):
             self.update_terminal()
             if self.use_img:
                 board_frame = cv2.resize(self.board_image, self.board_frame_shape)
-                board_frame = cv2.bitwise_or(board_overlay, board_frame)
+                board_overlay_resize = cv2.resize(board_overlay, self.board_frame_shape)
+                board_frame = cv2.bitwise_or(board_overlay_resize, board_frame)
                 #bitwise or for testing
             else:
                 board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape, board_overlay)
