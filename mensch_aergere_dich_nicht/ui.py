@@ -149,15 +149,52 @@ class Ui(threading.Thread):
         frame = cv2.rectangle(frame, (0, 0), (x, y), (0,0,0), 3) 
         frame = cv2.putText(frame, text ,(int(0+x*0.35),text_y), cv2.FONT_HERSHEY_TRIPLEX, 1, (255, 255, 255), 1)
         return frame
+    
+    def highlighting(self):
+        
+        frame = np.zeros_like(self.board_cap, dtype=np.uint8)
+
+        for figure in self.game_thread.figures:
+            coordinatesRel = figure.get_position()
+            idx = figure.id
+            coordinates = self.game_thread.normalize_position(figure.player.id, coordinatesRel)
+
+            radius = coordinates.pop()
+
+            if figure.player.color == "green":
+                highlighting_color = (0, 100, 0)
+            elif figure.player.color == "red":
+                highlighting_color = (0, 0, 238)
+            elif figure.player.color == "black":
+                highlighting_color = (0, 0, 0)
+            else:
+                highlighting_color = (0, 215, 255)
+
+            cv2.circle(frame, coordinates, radius, highlighting_color, 5)
+
+            text_font = cv2.FONT_HERSHEY_DUPLEX
+            text_scale = 1.5
+            text_thickness = 2
+            text = idx
+
+            text_size, _ = cv2.getTextSize(text, text_font, text_scale, text_thickness)
+            text_origin = (coordinates[0] - text_size[0] // 2, coordinates[1] + text_size[1] // 2)
+
+            cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness, cv2.LINE_AA)
+
+
 
     def run(self):
         while True:
+            board_overlay = self.highlighting()
             self.update_instruction()
             self.update_terminal()
             if self.use_img:
                 board_frame = cv2.resize(self.board_image, self.board_frame_shape)
+                board_frame = cv2.bitwise_or(board_overlay, board_frame)
+                #bitwise or for testing
             else:
-                board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape)
+                board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape, board_overlay)
 
             dice_frame = self.prepare_frame(self.dice_cap, self.dice_frame_shape, self.dice_thread.overlay)
 
