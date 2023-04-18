@@ -11,9 +11,9 @@ def main():
 
 
     fps_tracker = Fps("MainThread")
-    dice_camera_id = 3
+    dice_camera_id = 1
     hand_camera_id = 4
-    board_camera_id = 1
+    board_camera_id = 3
 
     prev_frame_time = 0
 
@@ -69,7 +69,7 @@ def main():
                    dice_cap = dice_cap,
                    hand_cap = hand_cap,
                    board_cap = board_cap,
-                   use_img = False)
+                   use_img = True)
     ui_thread.name = "UiThread"
 
     

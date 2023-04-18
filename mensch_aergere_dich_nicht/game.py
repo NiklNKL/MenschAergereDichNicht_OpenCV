@@ -16,6 +16,8 @@ class Game(threading.Thread):
 
 		self.current_figure_ids = []
 		self.selected_figure = 0
+		self.current_turn_eye_count = 0
+		self.current_turn_available_figures = []
 
 		self.dice_thread = dice_thread
 		self.hand_thread = hand_thread
@@ -119,6 +121,7 @@ class Game(threading.Thread):
 		player = self.players[self.current_player]
 
 		available_figures = player.available_figures(eye_count)
+		self.current_turn_available_figures = available_figures
 		figure_ids = []
 		for figure, id in available_figures:
 			figure_ids.append(figure.id)
@@ -232,9 +235,9 @@ class Game(threading.Thread):
 		elif player_id == 1:
 			return RoundStatus.PLAYER_RED
 		elif player_id == 2:
-			return RoundStatus.PLAYER_YELLOW
-		elif player_id == 3:
 			return RoundStatus.PLAYER_BLACK
+		elif player_id == 3:
+			return RoundStatus.PLAYER_YELLOW
 		else:
 			return None
 
@@ -278,7 +281,7 @@ class Game(threading.Thread):
 
 					self.wait_for_gesture("thumbs up")
 					eye_count = self.dice_thread.current_eye_count
-					
+					self.current_turn_eye_count = eye_count
 					
 					if eye_count == 6:
 						self.current_turn(eye_count)
@@ -288,6 +291,7 @@ class Game(threading.Thread):
 				self.turn_status = TurnStatus.ROLL_DICE
 				self.wait_for_gesture("thumbs up")
 				eye_count = self.dice_thread.current_eye_count
+				self.current_turn_eye_count = eye_count
 				
 				self.current_turn(eye_count)
 				if eye_count != 6:
