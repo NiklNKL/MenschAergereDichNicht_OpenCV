@@ -74,9 +74,9 @@ class Ui(threading.Thread):
         self.terminal_frame = self.terminal_text(self.terminal_frame, "Finger:", int(0+x*0.63), int(0+y*0.5))
         self.terminal_frame = self.terminal_text(self.terminal_frame, "Gesture:", int(0+x*0.63), int(0+y*0.7))
         self.terminal_frame = self.terminal_text(self.terminal_frame, "Dice:", int(0+x*0.63), int(0+y*0.9))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.currentCount), int(0+x*0.80), int(0+y*0.5))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.currentClass), int(0+x*0.80), int(0+y*0.7))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.dice_thread.eye_count), int(0+x*0.80), int(0+y*0.9))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_count), int(0+x*0.80), int(0+y*0.5))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_class), int(0+x*0.80), int(0+y*0.7))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.dice_thread.current_eye_count), int(0+x*0.80), int(0+y*0.9))
         
     def update_instruction(self):
         self.instruction_frame = np.full((self.instruction_frame_shape[1], self.instruction_frame_shape[0], 3), 255, np.uint8)
@@ -99,11 +99,11 @@ class Ui(threading.Thread):
         cv2.putText(self.instruction_frame, text ,(text_x,text_y), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
         
         if str(self.game_thread.round_status.name) == "PLAYER_GREEN":
-            color = (5,168,35)
+            color = (35,168,5)
         elif str(self.game_thread.round_status.name) == "PLAYER_RED":
-            color = (204,3,0)
+            color = (0,3,204)
         elif str(self.game_thread.round_status.name) == "PLAYER_YELLOW":
-            color = (214,180,9)
+            color = (9,180,214)
         elif str(self.game_thread.round_status.name) == "PLAYER_BLACK":
             color = (125,125,125)
         else:
@@ -113,13 +113,28 @@ class Ui(threading.Thread):
         self.instruction_frame = cv2.rectangle(self.instruction_frame, (0, 0), (x, y), color, 5) 
         self.instruction_frame = cv2.putText(self.instruction_frame, "Game HUB" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, 1.2, (255, 255, 255), 1)
 
+    def figure_ids_to_string(self, array):
+        result = ""
+        for index, id in enumerate(array):
+            if index < len(array)-1:
+                result = result + str(id+1)
+                if index + 1 == len(array)-1:
+                    result = result + " und "
+                else:
+                    result = result + ", "
+            else:
+                result = result + str(id+1)
+        return result
+
     def get_correct_instruction(self):
         if str(self.game_thread.turn_status.name) == "ROLL_DICE":
-            return f"Du hast eine {self.dice_thread.eye_count} gewuerfelt."
+            return f"Du hast eine {self.dice_thread.current_eye_count} gewuerfelt."
         elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE":
-            return f"Du hast {self.game_thread.current_figure_ids} Figuren zur Auswahl."
+            return f"Du hast Figur {self.figure_ids_to_string(self.game_thread.current_figure_ids)} zur Auswahl."
         elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE_ACCEPT":
-            return f"Du hast Figur {self.game_thread.selected_figure} gewaehlt."
+            return f"Du hast Figur {str(self.game_thread.selected_figure.id+1)} gewaehlt."
+        elif str(self.game_thread.turn_status.name) == "MOVE_FIGURE":
+            return f"Bewewege Figur {str(self.game_thread.selected_figure.id+1)} und bestätige danach."
         elif str(self.game_thread.turn_status.name) == "KICK":
             return f"Du hast eine Figur von Spieler X geschlagen"
         else:

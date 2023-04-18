@@ -87,46 +87,50 @@ class Game(threading.Thread):
 
 	def wait_for_gesture(self, goal_gesture, second_goal_gesture = None):
 		self.hand_thread.video_feed = "gesture"
-		last_gesture = self.hand_thread.currentClass
+		last_gesture = self.hand_thread.current_class
 
 		while True and not self.stopped():
 			time.sleep(0.1)
-			current_gesture = self.hand_thread.currentClass
+			current_gesture = self.hand_thread.current_class
 			if current_gesture != last_gesture and current_gesture == goal_gesture:
 				return True
-			elif second_goal_gesture is not None: 
+			else:
+					last_gesture = current_gesture
+			if second_goal_gesture is not None: 
 				if current_gesture != last_gesture and current_gesture == second_goal_gesture:
 					return False
-			else:
-				last_gesture = current_gesture
+				else:
+					last_gesture = current_gesture
 
 	def wait_for_count(self, possible_figure_ids):
 		self.hand_thread.video_feed = "counter"
-		last_count = self.hand_thread.currentCount
-
+		last_count = self.hand_thread.current_count
+		showed_ten = False
 		while True and not self.stopped():
 			time.sleep(0.1)
-			if last_count == 10 and self.hand_thread.currentCount-1 in possible_figure_ids:
+			if last_count == 10:
+				showed_ten =True
+			if showed_ten and self.hand_thread.current_count-1 in possible_figure_ids:
 				return True
 			else:
-				last_count = self.hand_thread.currentCount
+				last_count = self.hand_thread.current_count
 
 	def current_turn(self, eye_count):
 		player = self.players[self.current_player]
 
-		avail_moves = player.available_moves(eye_count)
-		fig_ids = []
-		for index, id in avail_moves:
-			fig_ids.append(index.id)
+		available_figures = player.available_figures(eye_count)
+		figure_ids = []
+		for figure, id in available_figures:
+			figure_ids.append(figure.id)
 
-		self.current_figure_ids = fig_ids
+		self.current_figure_ids = figure_ids
 
-		if len(avail_moves) > 0:
+		if len(available_figures) > 0:
 			figure_accepted = False
 			while not figure_accepted and not self.stopped():
 				self.turn_status = TurnStatus.SELECT_FIGURE
 				## Wenn Zug möglich, wähle einen aus
-				chosen_figure = self.choose_figure(avail_moves)
+				chosen_figure = self.choose_figure(available_figures)
 				self.turn_status = TurnStatus.SELECT_FIGURE_ACCEPT
 				figure_accepted = self.wait_for_gesture("thumbs up", "thumbs down")
 
@@ -172,13 +176,22 @@ class Game(threading.Thread):
 		print(f"Moved {p_chosen_figure.id} to {newPos}")
 		p_chosen_figure.set_position(newPos, field.img_pos, p_current_player.color, p_chosen_figure.id)
 
-	def choose_figure(self, available_moves):
+	def choose_figure(self, available_figures):
 		
 		self.wait_for_count(self.current_figure_ids)
-		chosen_figure = self.hand_thread.currentCount-1
+		
+		player = self.players[self.current_player]
+		chosen_figure = player.figures[self.hand_thread.current_count-1]
 		self.selected_figure = chosen_figure
-		# return chosen figure object
-		return available_moves[chosen_figure][0]
+		return chosen_figure
+		# chosen_figure = self.hand_thread.current_count-1
+		
+		# # return chosen figure object
+		# return available_figures[chosen_figure][0]
+
+		# Wir zeigen 2 an
+		# Wir haben auch nur 2 zur Auswahl, heißt die ist in available_figures index 0
+
 
 	def calculate_new_pos(self, p_chosen_figure, p_eye_count):
 		newPos = 0
@@ -264,7 +277,7 @@ class Game(threading.Thread):
 						break
 
 					self.wait_for_gesture("thumbs up")
-					eye_count = self.dice_thread.eye_count
+					eye_count = self.dice_thread.current_eye_count
 					
 					
 					if eye_count == 6:
@@ -274,10 +287,8 @@ class Game(threading.Thread):
 			while player.has_movable_figures() and not self.stopped():
 				self.turn_status = TurnStatus.ROLL_DICE
 				self.wait_for_gesture("thumbs up")
-				eye_count = self.dice_thread.eye_count
+				eye_count = self.dice_thread.current_eye_count
 				
-
-
 				self.current_turn(eye_count)
 				if eye_count != 6:
 					break
