@@ -59,7 +59,10 @@ class Ui(threading.Thread):
 
         if overlay is not None:
             resize_overlay = cv2.resize(overlay, shape)
-            final_frame = cv2.bitwise_or(resize_overlay, resize_frame)
+            ignore_color = np.asarray((0,0,0))
+            mask = ~(resize_overlay==ignore_color).all(-1)
+            resize_frame[mask] = cv2.addWeighted(resize_frame[mask], 0, resize_overlay[mask], 1, 0)
+            final_frame = resize_frame
         else:
             final_frame = resize_frame
         return final_frame
