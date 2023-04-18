@@ -239,7 +239,15 @@ class HandReader(threading.Thread):
                 # Drawing landmarks on frames
                 self.mpDraw.draw_landmarks(frame, handslms, self.mpHands.HAND_CONNECTIONS)
             # Predict gesture in Hand Gesture Recognition project
-            prediction = self.model([landmarks])
+
+            
+            try:
+                prediction = self.model([landmarks])
+            except Exception:
+                landmarks = np.expand_dims(np.stack(landmarks), axis=0)
+                prediction = self.model(landmarks)
+
+            
             classID = np.argmax(prediction)
             className = self.classNames[classID]
             # show the prediction on the frame
