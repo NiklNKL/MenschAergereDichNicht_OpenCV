@@ -40,7 +40,7 @@ class Player():
 				return True
 		return False
 	
-	def available_moves(self, p_eye_count):
+	def available_figures(self, p_eye_count):
 		available_figures = []
 
 		# Checks wheather there are figures on their starting position and a figure is located on field 0

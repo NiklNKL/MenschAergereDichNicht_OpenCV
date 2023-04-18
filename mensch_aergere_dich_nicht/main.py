@@ -11,9 +11,10 @@ def main():
 
 
     fps_tracker = Fps("MainThread")
-    dice_camera_id = 1
-    hand_camera_id = 1
+    dice_camera_id = 3
+    hand_camera_id = 4
     board_camera_id = 1
+
     prev_frame_time = 0
 
     print("\nStarting threads...")
@@ -51,9 +52,9 @@ def main():
     print(f"\nWe got all the frames! It took: {(time.time()-new_time):.3f} seconds.\n")
     new_time = time.time()
 
-    dice_thread = DiceReader(cap=dice_cap)
+    dice_thread = DiceReader(cap=dice_cap, time_threshold=1)
     dice_thread.name = "DiceReaderThread"
-    hand_thread = HandReader(timeThreshold = 2, cap=hand_cap)
+    hand_thread = HandReader(time_threshold = 2, cap=hand_cap)
     hand_thread.name = "HandReaderThread"
     board_thread = BoardReader(cap=board_cap, use_img=True)
     board_thread.name = "BoardReaderThread"
@@ -119,9 +120,18 @@ def main():
             hand_thread.stop()
             board_thread.stop()
             if dice_camera_id == hand_camera_id == board_camera_id:
-                cap.stop()
                 cap_stats = cap.stats
+                dice_cap_stats = "No DiceCam"
+                hand_cap_stats = "No HandCam"
+                board_cap_stats = "No BoardCam"
+                cap_res = cap.camera_resolution
+                cap.stop()
             else:
+                cap_stats  = "More than one camera used"
+                dice_cap_stats = dice_cap.stats
+                hand_cap_stats = hand_cap.stats
+                board_cap_stats = board_cap.stats
+                cap_res = hand_cap.camera_resolution
                 dice_cap.stop()
                 hand_cap.stop()
                 board_cap.stop()
@@ -129,7 +139,7 @@ def main():
             print("Process ran for: " + str(time.strftime("%Hh %Mm %Ss", time.gmtime((time.time()-start_time)))) + "\n")
             break
 
-    print(f"###### Statistics ######\n{ui_stats}\n{dice_stats}\n{hand_stats}\n{cap_stats}\n{main_stats}\n#########################\n")
+    print(f"###### Statistics ######\nCamera Resolution: {cap_res}\n\n{main_stats}\n{ui_stats}\n{dice_stats}\n{hand_stats}\n{cap_stats}\n{dice_cap_stats}\n{hand_cap_stats}\n{board_cap_stats}\n#########################\n")
 
 if __name__ == "__main__":
     main()

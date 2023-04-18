@@ -21,7 +21,7 @@ class Ui(threading.Thread):
         self.hand_cap = hand_cap
         self.board_cap = board_cap
 
-        
+        self.board_highlighting_treshold = 0
 
         self.board_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
 
@@ -29,6 +29,7 @@ class Ui(threading.Thread):
 
         self.window_name = "Mensch_aergere_dich_nicht"
         self.frame = np.zeros((self.shape[0], self.shape[1], 3), np.uint8)
+        self.board_overlay = np.zeros((self.shape[0], self.shape[1], 3), np.uint8)
 
         self.dice_frame_shape = (int(self.shape[0]*0.4), int(self.shape[1]*0.425))
         self.hand_frame_shape = (int(self.shape[0]*0.4), int(self.shape[1]*0.425))
@@ -86,9 +87,9 @@ class Ui(threading.Thread):
         self.terminal_frame = self.terminal_text(self.terminal_frame, "Finger:", int(0+x*0.63), int(0+y*0.5))
         self.terminal_frame = self.terminal_text(self.terminal_frame, "Gesture:", int(0+x*0.63), int(0+y*0.7))
         self.terminal_frame = self.terminal_text(self.terminal_frame, "Dice:", int(0+x*0.63), int(0+y*0.9))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.currentCount), int(0+x*0.80), int(0+y*0.5))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.currentClass), int(0+x*0.80), int(0+y*0.7))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.dice_thread.eye_count), int(0+x*0.80), int(0+y*0.9))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_count), int(0+x*0.80), int(0+y*0.5))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_class), int(0+x*0.80), int(0+y*0.7))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.dice_thread.current_eye_count), int(0+x*0.80), int(0+y*0.9))
         
     def update_instruction(self):
         self.instruction_frame = np.full((self.instruction_frame_shape[1], self.instruction_frame_shape[0], 3), 255, np.uint8)
@@ -111,11 +112,11 @@ class Ui(threading.Thread):
         cv2.putText(self.instruction_frame, text ,(text_x,text_y), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
         
         if str(self.game_thread.round_status.name) == "PLAYER_GREEN":
-            color = (5,168,35)
+            color = (35,168,5)
         elif str(self.game_thread.round_status.name) == "PLAYER_RED":
-            color = (204,3,0)
+            color = (0,3,204)
         elif str(self.game_thread.round_status.name) == "PLAYER_YELLOW":
-            color = (214,180,9)
+            color = (9,180,214)
         elif str(self.game_thread.round_status.name) == "PLAYER_BLACK":
             color = (125,125,125)
         else:
@@ -125,13 +126,28 @@ class Ui(threading.Thread):
         self.instruction_frame = cv2.rectangle(self.instruction_frame, (0, 0), (x, y), color, 5) 
         self.instruction_frame = cv2.putText(self.instruction_frame, "Game HUB" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, 1.2, (255, 255, 255), 1)
 
+    def figure_ids_to_string(self, array):
+        result = ""
+        for index, id in enumerate(array):
+            if index < len(array)-1:
+                result = result + str(id+1)
+                if index + 1 == len(array)-1:
+                    result = result + " und "
+                else:
+                    result = result + ", "
+            else:
+                result = result + str(id+1)
+        return result
+
     def get_correct_instruction(self):
         if str(self.game_thread.turn_status.name) == "ROLL_DICE":
-            return f"Du hast eine {self.dice_thread.eye_count} gewuerfelt."
+            return f"Du hast eine {self.dice_thread.current_eye_count} gewuerfelt."
         elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE":
-            return f"Du hast {self.game_thread.current_figure_ids} Figuren zur Auswahl."
+            return f"Du hast Figur {self.figure_ids_to_string(self.game_thread.current_figure_ids)} zur Auswahl."
         elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE_ACCEPT":
-            return f"Du hast Figur {self.game_thread.selected_figure} gewaehlt."
+            return f"Du hast Figur {str(self.game_thread.selected_figure.id+1)} gewaehlt."
+        elif str(self.game_thread.turn_status.name) == "MOVE_FIGURE":
+            return f"Bewege Figur {str(self.game_thread.selected_figure.id+1)} und bestaetige danach."
         elif str(self.game_thread.turn_status.name) == "KICK":
             return f"Du hast eine Figur von Spieler X geschlagen"
         else:
@@ -164,7 +180,11 @@ class Ui(threading.Thread):
         return frame
     
     def highlighting(self):
-        
+        if self.board_highlighting_treshold == 500:
+            self.board_highlighting_treshold = 0
+        else:
+            self.board_highlighting_treshold += 1
+
         frame = np.zeros_like(self.board_image, dtype=np.uint8)
 
         for i, figure in enumerate(self.game_thread.figures):
@@ -212,33 +232,43 @@ class Ui(threading.Thread):
 
             cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
 
-            if self.game_thread.turn_status.name == "SELECT_FIGURE":
-                eye_count = self.dice_thread.eye_count
+            if self.game_thread.turn_status.name == "SELECT_FIGURE" or self.game_thread.turn_status.name == "SELECT_FIGURE_ACCEPT" or self.game_thread.turn_status.name == "MOVE_FIGURE":
+              
 
 
                 if figure.player.id == self.game_thread.current_player:
                     
-                    player = self.game_thread.players[self.game_thread.current_player]
+                    # player = self.game_thread.players[self.game_thread.current_player]
 
-                    available_moves = player.available_moves(eye_count)
+                    available_figures = self.game_thread.current_turn_available_figures
 
-                    for f, new_pos in available_moves:
-                        field_index = self.game_thread.normalize_position(figure.player.id, new_pos)
-                        available_move_coordinates = self.game_thread.fields[field_index].img_pos
+                    for f, new_pos in available_figures:
 
-                        available_move_radius = int(available_move_coordinates[-1])
+                        try:
+                            field_index = self.game_thread.normalize_position(figure.player.id, new_pos)
+                            available_figure_coordinates = self.game_thread.fields[field_index].img_pos
+                        except IndexError:
+                            if coordinates_rel == None:
+                                index = i % 4
+                                available_figure_coordinates = figure.player.home_fields[index].img_pos
+                            else:
+                                index = i % 4
+                                available_figure_coordinates = figure.player.end_fields[index].img_pos
 
-                        available_move_coordinates = available_move_coordinates[:-1]
 
-                        cv2.circle(frame, (int(available_move_coordinates[0]), int(available_move_coordinates[1])), available_move_radius, (255, 0, 255), 20)
+                        available_figure_radius = int(available_figure_coordinates[-1])
+
+                        available_figure_coordinates = available_figure_coordinates[:-1]
+
+                        cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_figure_radius, (255, 0, 255), 20)
                                 
-                        text_origin = (int(available_move_coordinates[0]) - text_size[0] // 2, int(available_move_coordinates[1]) + text_size[1] // 2)
+                        text_origin = (int(available_figure_coordinates[0]) - text_size[0] // 2, int(available_figure_coordinates[1]) + text_size[1] // 2)
                         cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
 
                 # if figure.player.id == self.game_thread.current_player:
 
                 #     if field_index is not None:
-                #         available_move_coordinates = self.game_thread.fields[field_index + eye_count].img_pos
+                #         available_figure_coordinates = self.game_thread.fields[field_index + eye_count].img_pos
 
                         
 
@@ -246,35 +276,36 @@ class Ui(threading.Thread):
         
                 #     else:
                 #         if coordinates_rel == None and eye_count == 6:
-                #             available_move_coordinates = self.game_thread.fields[figure.player.start_field].img_pos
+                #             available_figure_coordinates = self.game_thread.fields[figure.player.start_field].img_pos
                         
-                #             available_move_radius = int(available_move_coordinates[-1])
+                #             available_move_radius = int(available_figure_coordinates[-1])
 
-                #             available_move_coordinates = available_move_coordinates[:-1]
+                #             available_figure_coordinates = available_figure_coordinates[:-1]
 
-                #             cv2.circle(frame, (int(available_move_coordinates[0]), int(available_move_coordinates[1])), available_move_radius, (255, 0, 255), 20)
+                #             cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_move_radius, (255, 0, 255), 20)
                             
-                #             text_origin = (int(available_move_coordinates[0]) - text_size[0] // 2, int(available_move_coordinates[1]) + text_size[1] // 2)
+                #             text_origin = (int(available_figure_coordinates[0]) - text_size[0] // 2, int(available_figure_coordinates[1]) + text_size[1] // 2)
                 #             cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
                 #         else:
                 #             pass
             
         return frame
 
-
-
     def run(self):
+
         while True:
-            board_overlay = self.highlighting()
+
+            if self.board_highlighting_treshold == 0:
+                self.board_overlay = self.highlighting()
             self.update_instruction()
             self.update_terminal()
             if self.use_img:
                 board_frame = cv2.resize(self.board_image, self.board_frame_shape)
-                board_overlay_resize = cv2.resize(board_overlay, self.board_frame_shape)
+                board_overlay_resize = cv2.resize(self.board_overlay, self.board_frame_shape)
                 board_frame = cv2.bitwise_or(board_overlay_resize, board_frame)
                 #bitwise or for testing
             else:
-                board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape, board_overlay, is_board=True)
+                board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape, self.board_overlay, is_board=True)
 
 
             dice_frame = self.prepare_frame(self.dice_cap, self.dice_frame_shape, self.dice_thread.overlay)

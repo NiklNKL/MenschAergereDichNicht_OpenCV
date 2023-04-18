@@ -13,7 +13,7 @@ import threading
 from utilities import Fps
 
 class HandReader(threading.Thread):
-    def __init__(self, timeThreshold, cap, confidence = 0.7, video_feed = "gesture"):
+    def __init__(self, time_threshold, cap, confidence = 0.7, video_feed = "gesture"):
         
         threading.Thread.__init__(self)
         # Initialising of the videocapture
@@ -46,17 +46,17 @@ class HandReader(threading.Thread):
         #### Everthing needed for updating the gesture/count ####
 
         # Threshold on how long a gesture or a count needs to stay the same
-        self.timeThreshold = timeThreshold
+        self.time_threshold = time_threshold
 
         # Variables used for class update
-        self.currentClass = ""
-        self.previousClass = ""
+        self.current_class = ""
+        self.previous_class = ""
         self.time_without_change = 0
         self.last_update_time = time()
 
         # Variables used for count update
-        self.currentCount = ''
-        self.previousCount = ''
+        self.current_count = ''
+        self.previous_count = ''
         self.count_time_without_change = 0
         self.count_last_update_time = time()
 
@@ -281,44 +281,44 @@ class HandReader(threading.Thread):
         return count, frame
 
     def update_class(self, className):
-    # Wenn sich der Klassenname geändert hat, setze die Zeit ohne Änderung auf 0 zurück und aktualisiere previousClass
-        if className != self.previousClass:
-            self.previousClass = className
+    # Wenn sich der Klassenname geändert hat, setze die Zeit ohne Änderung auf 0 zurück und aktualisiere previous_class
+        if className != self.previous_class:
+            self.previous_class = className
             self.time_without_change = 0
             if className == '':
-                self.currentClass = className
+                self.current_class = className
         else:
             # Andernfalls erhöhe die Zeit ohne Änderung um die vergangene Zeit seit dem letzten Update
             self.time_without_change += time() - self.last_update_time
 
         self.last_update_time = time()
-        # Wenn die Zeit ohne Änderung größer als timeThreshold Sekunden ist, aktualisiere das Bild
-        if self.time_without_change >= self.timeThreshold:
+        # Wenn die Zeit ohne Änderung größer als time_threshold Sekunden ist, aktualisiere das Bild
+        if self.time_without_change >= self.time_threshold:
             # Hier kann der aktuelle Wert der Variable abgerufen werden
             current_value = className
             # Setze die letzte Aktualisierungszeit auf die aktuelle Zeit
             # self.last_update_time = time.time()
-            self.currentClass = current_value
+            self.current_class = current_value
 
     def update_count(self, count):
-    # Wenn sich der Klassenname geändert hat, setze die Zeit ohne Änderung auf 0 zurück und aktualisiere previousClass
-        if count != self.previousCount:
-            self.previousCount = count
+    # Wenn sich der Klassenname geändert hat, setze die Zeit ohne Änderung auf 0 zurück und aktualisiere previous_class
+        if count != self.previous_count:
+            self.previous_count = count
             self.count_time_without_change = 0
             if count == 0:
-                self.currentCount = count
+                self.current_count = count
         else:
             # Andernfalls erhöhe die Zeit ohne Änderung um die vergangene Zeit seit dem letzten Update
             self.count_time_without_change += time() - self.count_last_update_time
 
         self.count_last_update_time = time()
-        # Wenn die Zeit ohne Änderung größer als timeThreshold Sekunden ist, aktualisiere das Bild
-        if self.count_time_without_change >= self.timeThreshold:
+        # Wenn die Zeit ohne Änderung größer als time_threshold Sekunden ist, aktualisiere das Bild
+        if self.count_time_without_change >= self.time_threshold:
             # Hier kann der aktuelle Wert der Variable abgerufen werden
             current_value = count
             # Setze die letzte Aktualisierungszeit auf die aktuelle Zeit
             # self.last_update_time = time.time()
-            self.currentCount = current_value
+            self.current_count = current_value
             
             # Speichere die letzte Aktualisierungszeit
     
@@ -330,6 +330,8 @@ class HandReader(threading.Thread):
 
 
     def run(self):
+        className = ''
+        count = -1
         while True:
             # Initialize the webcam for Hand Gesture Recognition Python proje
             self.frame = self.cap.frame
@@ -345,8 +347,7 @@ class HandReader(threading.Thread):
             result = self.hands.process(framergb)
             fingerResult = self.finger.process(framergb)
 
-            className = ''
-            count = -1
+            
 
             if self.video_feed == "gesture":
                 className, self.temp_overlay = self.getGesture(result, self.temp_overlay)
@@ -355,7 +356,7 @@ class HandReader(threading.Thread):
                 self.temp_overlay = self.fps_tracker.counter(self.temp_overlay, self.prev_frame_time, name="Hand", corner=2)
                 self.prev_frame_time = time()
                 
-                cv2.putText(self.temp_overlay, "Detected Gesture: " + self.currentClass, (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                cv2.putText(self.temp_overlay, "Detected Gesture: " + self.current_class, (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0,0,255), 2, cv2.LINE_AA)
                 
             elif self.video_feed == "counter":
@@ -365,7 +366,7 @@ class HandReader(threading.Thread):
                 self.temp_overlay = self.fps_tracker.counter(self.temp_overlay, self.prev_frame_time, name="Hand", corner=2)
                 self.prev_frame_time = time()
 
-                cv2.putText(self.temp_overlay, "Detected Count: " + str(self.currentCount), (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                cv2.putText(self.temp_overlay, "Detected Count: " + str(self.current_count), (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0,0,255), 2, cv2.LINE_AA)
             self.overlay = self.temp_overlay
             # UiHandler.update(handFrame = self.frame)
