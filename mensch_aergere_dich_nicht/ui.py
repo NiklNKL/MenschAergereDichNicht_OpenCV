@@ -21,11 +21,14 @@ class Ui(threading.Thread):
         self.hand_cap = hand_cap
         self.board_cap = board_cap
 
+        
+
         self.board_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
 
         self.shape = (1920, 1080)
 
         self.window_name = "Mensch_aergere_dich_nicht"
+        self.frame = np.zeros((self.shape[0], self.shape[1], 3), np.uint8)
 
         self.dice_frame_shape = (int(self.shape[0]*0.4), int(self.shape[1]*0.425))
         self.hand_frame_shape = (int(self.shape[0]*0.4), int(self.shape[1]*0.425))
@@ -37,19 +40,29 @@ class Ui(threading.Thread):
         self.instruction_frame = np.full((self.instruction_frame_shape[1], self.instruction_frame_shape[0], 3), 255, np.uint8)
 
         self.use_img = use_img
-        self.exit = False
         
-
         self.prev_frame_time = 0
         self.fps_tracker = Fps("UI")
         self.stats = ""
 
-    def prepare_frame(self, cap, shape, overlay=None):
+    def prepare_frame(self, cap, shape, overlay=None, is_board = False):
         frame = cap.frame
+        
+        ##crop frame if it is board
+        if is_board:
+            x_old,y_old,_ = frame.shape
+            x_diff = (x_old - shape[1])//2
+            y_diff = (y_old - shape[0])//2
+            frame = frame[ x_diff:x_diff+shape[1],y_diff:y_diff+shape[0],:]
+            
         resize_frame = cv2.resize(frame, shape)
+
         if overlay is not None:
             resize_overlay = cv2.resize(overlay, shape)
-            final_frame = cv2.bitwise_or(resize_overlay, resize_frame)
+            ignore_color = np.asarray((0,0,0))
+            mask = ~(resize_overlay==ignore_color).all(-1)
+            resize_frame[mask] = cv2.addWeighted(resize_frame[mask], 0, resize_overlay[mask], 1, 0)
+            final_frame = resize_frame
         else:
             final_frame = resize_frame
         return final_frame
@@ -261,7 +274,8 @@ class Ui(threading.Thread):
                 board_frame = cv2.bitwise_or(board_overlay_resize, board_frame)
                 #bitwise or for testing
             else:
-                board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape, board_overlay)
+                board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape, board_overlay, is_board=True)
+
 
             dice_frame = self.prepare_frame(self.dice_cap, self.dice_frame_shape, self.dice_thread.overlay)
 
@@ -282,14 +296,9 @@ class Ui(threading.Thread):
             stream = np.vstack((numpy_horizontal_upper, numpy_horizontal_lower))
             stream = self.fps_tracker.counter(stream, self.prev_frame_time, name="UI", corner=4)
             self.prev_frame_time = time()
-            cv2.imshow(self.window_name, stream)
-
-            key = cv2.waitKey(20)
-            if key == 27:  # exit on ESC
-                self.exit = True
-                self.stats = self.fps_tracker.stats
-                cv2.destroyAllWindows()
-                break
+            self.frame = stream
+            self.stats = self.fps_tracker.stats
+            
             if self.stopped():  
                 break
 
