@@ -45,9 +45,18 @@ class Ui(threading.Thread):
         self.fps_tracker = Fps("UI")
         self.stats = ""
 
-    def prepare_frame(self, cap, shape, overlay=None):
+    def prepare_frame(self, cap, shape, overlay=None, is_board = False):
         frame = cap.frame
+        
+        ##crop frame if it is board
+        if is_board:
+            x_old,y_old,_ = frame.shape
+            x_diff = (x_old - shape[1])//2
+            y_diff = (y_old - shape[0])//2
+            frame = frame[ x_diff:x_diff+shape[1],y_diff:y_diff+shape[0],:]
+            
         resize_frame = cv2.resize(frame, shape)
+
         if overlay is not None:
             resize_overlay = cv2.resize(overlay, shape)
             final_frame = cv2.bitwise_or(resize_overlay, resize_frame)
@@ -158,7 +167,7 @@ class Ui(threading.Thread):
             if self.use_img:
                 board_frame = cv2.resize(self.board_image, self.board_frame_shape)
             else:
-                board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape)
+                board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape, is_board=True)
 
             dice_frame = self.prepare_frame(self.dice_cap, self.dice_frame_shape, self.dice_thread.overlay)
 
