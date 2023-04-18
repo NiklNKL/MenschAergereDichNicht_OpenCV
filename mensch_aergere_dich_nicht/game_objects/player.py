@@ -42,7 +42,6 @@ class Player():
 	
 	def available_moves(self, p_eye_count):
 		available_figures = []
-		print("Available Moves:")
 
 		# Checks wheather there are figures on their starting position and a figure is located on field 0
 		# If yes that figure has to be moved!

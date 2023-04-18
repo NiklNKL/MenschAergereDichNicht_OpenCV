@@ -45,12 +45,24 @@ class Ui(threading.Thread):
         self.fps_tracker = Fps("UI")
         self.stats = ""
 
-    def prepare_frame(self, cap, shape, overlay=None):
+    def prepare_frame(self, cap, shape, overlay=None, is_board = False):
         frame = cap.frame
+        
+        ##crop frame if it is board
+        if is_board:
+            x_old,y_old,_ = frame.shape
+            x_diff = (x_old - shape[1])//2
+            y_diff = (y_old - shape[0])//2
+            frame = frame[ x_diff:x_diff+shape[1],y_diff:y_diff+shape[0],:]
+            
         resize_frame = cv2.resize(frame, shape)
+
         if overlay is not None:
             resize_overlay = cv2.resize(overlay, shape)
-            final_frame = cv2.bitwise_or(resize_overlay, resize_frame)
+            ignore_color = np.asarray((0,0,0))
+            mask = ~(resize_overlay==ignore_color).all(-1)
+            resize_frame[mask] = cv2.addWeighted(resize_frame[mask], 0, resize_overlay[mask], 1, 0)
+            final_frame = resize_frame
         else:
             final_frame = resize_frame
         return final_frame
@@ -150,15 +162,120 @@ class Ui(threading.Thread):
         frame = cv2.rectangle(frame, (0, 0), (x, y), (0,0,0), 3) 
         frame = cv2.putText(frame, text ,(int(0+x*0.35),text_y), cv2.FONT_HERSHEY_TRIPLEX, 1, (255, 255, 255), 1)
         return frame
+    
+    def highlighting(self):
+        
+        frame = np.zeros_like(self.board_image, dtype=np.uint8)
+
+        for i, figure in enumerate(self.game_thread.figures):
+            coordinates_rel = figure.get_position()
+            idx = figure.id
+            field_index = None
+            try:
+                field_index = self.game_thread.normalize_position(figure.player.id, coordinates_rel)
+                coordinates = self.game_thread.fields[field_index].img_pos
+            except IndexError:
+                if coordinates_rel == None:
+                    index = i % 4
+                    coordinates = figure.player.home_fields[index].img_pos
+                else:
+                    index = i % 4
+                    coordinates = figure.player.end_fields[index].img_pos
+
+            radius = int(coordinates[-1])
+
+            coordinates = coordinates[:-1]
+
+            if figure.player.color == "green":
+                highlighting_color = (0, 150, 0)
+            elif figure.player.color == "red":
+                highlighting_color = (0, 0, 255)
+            elif figure.player.color == "black":
+                highlighting_color = (255, 255, 255)
+            else:
+                highlighting_color = (0, 215, 255)
+
+
+            #wenn turnstatus = select figure dann eye count abfragen
+            #dann available moves anzeigen
+            #roundstatus zeigt an welcher spieler dran ist
+
+            cv2.circle(frame, (int(coordinates[0]), int(coordinates[1])), radius, highlighting_color, 20)
+
+            text_font = cv2.FONT_HERSHEY_DUPLEX
+            text_scale = 1.5
+            text_thickness = 10
+            text = str(idx+1)
+
+            text_size, _ = cv2.getTextSize(text, text_font, text_scale, text_thickness)
+            text_origin = (int(coordinates[0]) - text_size[0] // 2, int(coordinates[1]) + text_size[1] // 2)
+
+            cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
+
+            if self.game_thread.turn_status.name == "SELECT_FIGURE":
+                eye_count = self.dice_thread.eye_count
+
+
+                if figure.player.id == self.game_thread.current_player:
+                    
+                    player = self.game_thread.players[self.game_thread.current_player]
+
+                    available_moves = player.available_moves(eye_count)
+
+                    for f, new_pos in available_moves:
+                        field_index = self.game_thread.normalize_position(figure.player.id, new_pos)
+                        available_move_coordinates = self.game_thread.fields[field_index].img_pos
+
+                        available_move_radius = int(available_move_coordinates[-1])
+
+                        available_move_coordinates = available_move_coordinates[:-1]
+
+                        cv2.circle(frame, (int(available_move_coordinates[0]), int(available_move_coordinates[1])), available_move_radius, (255, 0, 255), 20)
+                                
+                        text_origin = (int(available_move_coordinates[0]) - text_size[0] // 2, int(available_move_coordinates[1]) + text_size[1] // 2)
+                        cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
+
+                # if figure.player.id == self.game_thread.current_player:
+
+                #     if field_index is not None:
+                #         available_move_coordinates = self.game_thread.fields[field_index + eye_count].img_pos
+
+                        
+
+                        
+        
+                #     else:
+                #         if coordinates_rel == None and eye_count == 6:
+                #             available_move_coordinates = self.game_thread.fields[figure.player.start_field].img_pos
+                        
+                #             available_move_radius = int(available_move_coordinates[-1])
+
+                #             available_move_coordinates = available_move_coordinates[:-1]
+
+                #             cv2.circle(frame, (int(available_move_coordinates[0]), int(available_move_coordinates[1])), available_move_radius, (255, 0, 255), 20)
+                            
+                #             text_origin = (int(available_move_coordinates[0]) - text_size[0] // 2, int(available_move_coordinates[1]) + text_size[1] // 2)
+                #             cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
+                #         else:
+                #             pass
+            
+        return frame
+
+
 
     def run(self):
         while True:
+            board_overlay = self.highlighting()
             self.update_instruction()
             self.update_terminal()
             if self.use_img:
                 board_frame = cv2.resize(self.board_image, self.board_frame_shape)
+                board_overlay_resize = cv2.resize(board_overlay, self.board_frame_shape)
+                board_frame = cv2.bitwise_or(board_overlay_resize, board_frame)
+                #bitwise or for testing
             else:
-                board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape)
+                board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape, board_overlay, is_board=True)
+
 
             dice_frame = self.prepare_frame(self.dice_cap, self.dice_frame_shape, self.dice_thread.overlay)
 
