@@ -21,7 +21,7 @@ class Ui(threading.Thread):
         self.hand_cap = hand_cap
         self.board_cap = board_cap
 
-        
+        self.board_highlighting_treshold = 0
 
         self.board_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
 
@@ -29,6 +29,7 @@ class Ui(threading.Thread):
 
         self.window_name = "Mensch_aergere_dich_nicht"
         self.frame = np.zeros((self.shape[0], self.shape[1], 3), np.uint8)
+        self.board_overlay = np.zeros((self.shape[0], self.shape[1], 3), np.uint8)
 
         self.dice_frame_shape = (int(self.shape[0]*0.4), int(self.shape[1]*0.425))
         self.hand_frame_shape = (int(self.shape[0]*0.4), int(self.shape[1]*0.425))
@@ -179,7 +180,11 @@ class Ui(threading.Thread):
         return frame
     
     def highlighting(self):
-        
+        if self.board_highlighting_treshold == 500:
+            self.board_highlighting_treshold = 0
+        else:
+            self.board_highlighting_treshold += 1
+
         frame = np.zeros_like(self.board_image, dtype=np.uint8)
 
         for i, figure in enumerate(self.game_thread.figures):
@@ -237,25 +242,25 @@ class Ui(threading.Thread):
 
                     available_figures = self.game_thread.current_turn_available_figures
 
-                    for f, new_pos in available_moves:
+                    for f, new_pos in available_figures:
 
                         try:
                             field_index = self.game_thread.normalize_position(figure.player.id, new_pos)
-                            available_move_coordinates = self.game_thread.fields[field_index].img_pos
+                            available_figure_coordinates = self.game_thread.fields[field_index].img_pos
                         except IndexError:
                             if coordinates_rel == None:
                                 index = i % 4
-                                available_move_coordinates = figure.player.home_fields[index].img_pos
+                                available_figure_coordinates = figure.player.home_fields[index].img_pos
                             else:
                                 index = i % 4
-                                available_move_coordinates = figure.player.end_fields[index].img_pos
+                                available_figure_coordinates = figure.player.end_fields[index].img_pos
 
 
-                        available_move_radius = int(available_figure_coordinates[-1])
+                        available_figure_radius = int(available_figure_coordinates[-1])
 
                         available_figure_coordinates = available_figure_coordinates[:-1]
 
-                        cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_move_radius, (255, 0, 255), 20)
+                        cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_figure_radius, (255, 0, 255), 20)
                                 
                         text_origin = (int(available_figure_coordinates[0]) - text_size[0] // 2, int(available_figure_coordinates[1]) + text_size[1] // 2)
                         cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
@@ -286,20 +291,21 @@ class Ui(threading.Thread):
             
         return frame
 
-
-
     def run(self):
+
         while True:
-            board_overlay = self.highlighting()
+
+            if self.board_highlighting_treshold == 0:
+                self.board_overlay = self.highlighting()
             self.update_instruction()
             self.update_terminal()
             if self.use_img:
                 board_frame = cv2.resize(self.board_image, self.board_frame_shape)
-                board_overlay_resize = cv2.resize(board_overlay, self.board_frame_shape)
+                board_overlay_resize = cv2.resize(self.board_overlay, self.board_frame_shape)
                 board_frame = cv2.bitwise_or(board_overlay_resize, board_frame)
                 #bitwise or for testing
             else:
-                board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape, board_overlay, is_board=True)
+                board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape, self.board_overlay, is_board=True)
 
 
             dice_frame = self.prepare_frame(self.dice_cap, self.dice_frame_shape, self.dice_thread.overlay)
