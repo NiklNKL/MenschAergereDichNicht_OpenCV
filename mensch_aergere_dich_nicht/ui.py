@@ -227,8 +227,8 @@ class Ui(threading.Thread):
 
             cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
 
-            if self.game_thread.turn_status.name == "SELECT_FIGURE":
-                # eye_count = self.game_thread.current_turn_eye_count
+            if self.game_thread.turn_status.name == "SELECT_FIGURE" or self.game_thread.turn_status.name == "SELECT_FIGURE_ACCEPT" or self.game_thread.turn_status.name == "MOVE_FIGURE":
+              
 
 
                 if figure.player.id == self.game_thread.current_player:
@@ -237,9 +237,19 @@ class Ui(threading.Thread):
 
                     available_figures = self.game_thread.current_turn_available_figures
 
-                    for f, new_pos in available_figures:
-                        field_index = self.game_thread.normalize_position(figure.player.id, new_pos)
-                        available_figure_coordinates = self.game_thread.fields[field_index].img_pos
+                    for f, new_pos in available_moves:
+
+                        try:
+                            field_index = self.game_thread.normalize_position(figure.player.id, new_pos)
+                            available_move_coordinates = self.game_thread.fields[field_index].img_pos
+                        except IndexError:
+                            if coordinates_rel == None:
+                                index = i % 4
+                                available_move_coordinates = figure.player.home_fields[index].img_pos
+                            else:
+                                index = i % 4
+                                available_move_coordinates = figure.player.end_fields[index].img_pos
+
 
                         available_move_radius = int(available_figure_coordinates[-1])
 
