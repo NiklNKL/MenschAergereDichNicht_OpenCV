@@ -180,10 +180,10 @@ class Ui(threading.Thread):
         return frame
     
     def highlighting(self):
-        if self.board_highlighting_treshold == 500:
-            self.board_highlighting_treshold = 0
-        else:
-            self.board_highlighting_treshold += 1
+        # if self.board_highlighting_treshold == 500:
+        #     self.board_highlighting_treshold = 0
+        # else:
+        #     self.board_highlighting_treshold += 1
 
         frame = np.zeros_like(self.board_image, dtype=np.uint8)
 
@@ -295,8 +295,8 @@ class Ui(threading.Thread):
 
         while True:
 
-            if self.board_highlighting_treshold == 0:
-                self.board_overlay = self.highlighting()
+            #if self.board_highlighting_treshold == 0:
+            self.board_overlay = self.highlighting()
             self.update_instruction()
             self.update_terminal()
             if self.use_img:
