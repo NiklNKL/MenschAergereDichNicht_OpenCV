@@ -157,6 +157,7 @@ class Ui(threading.Thread):
         for i, figure in enumerate(self.game_thread.figures):
             coordinates_rel = figure.get_position()
             idx = figure.id
+            field_index = None
             try:
                 field_index = self.game_thread.normalize_position(figure.player.id, coordinates_rel)
                 coordinates = self.game_thread.fields[field_index].img_pos
@@ -196,8 +197,55 @@ class Ui(threading.Thread):
             text_size, _ = cv2.getTextSize(text, text_font, text_scale, text_thickness)
             text_origin = (int(coordinates[0]) - text_size[0] // 2, int(coordinates[1]) + text_size[1] // 2)
 
-            cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness, cv2.LINE_AA)
+            cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
+
+            if self.game_thread.turn_status.name == "SELECT_FIGURE":
+                eye_count = self.dice_thread.eye_count
+
+
+                if figure.player.id == self.game_thread.current_player:
+                    
+                    player = self.game_thread.players[self.game_thread.current_player]
+
+                    available_moves = player.available_moves(eye_count)
+
+                    for f, new_pos in available_moves:
+                        field_index = self.game_thread.normalize_position(figure.player.id, new_pos)
+                        available_move_coordinates = self.game_thread.fields[field_index].img_pos
+
+                        available_move_radius = int(available_move_coordinates[-1])
+
+                        available_move_coordinates = available_move_coordinates[:-1]
+
+                        cv2.circle(frame, (int(available_move_coordinates[0]), int(available_move_coordinates[1])), available_move_radius, (255, 0, 255), 20)
+                                
+                        text_origin = (int(available_move_coordinates[0]) - text_size[0] // 2, int(available_move_coordinates[1]) + text_size[1] // 2)
+                        cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
+
+                # if figure.player.id == self.game_thread.current_player:
+
+                #     if field_index is not None:
+                #         available_move_coordinates = self.game_thread.fields[field_index + eye_count].img_pos
+
+                        
+
+                        
         
+                #     else:
+                #         if coordinates_rel == None and eye_count == 6:
+                #             available_move_coordinates = self.game_thread.fields[figure.player.start_field].img_pos
+                        
+                #             available_move_radius = int(available_move_coordinates[-1])
+
+                #             available_move_coordinates = available_move_coordinates[:-1]
+
+                #             cv2.circle(frame, (int(available_move_coordinates[0]), int(available_move_coordinates[1])), available_move_radius, (255, 0, 255), 20)
+                            
+                #             text_origin = (int(available_move_coordinates[0]) - text_size[0] // 2, int(available_move_coordinates[1]) + text_size[1] // 2)
+                #             cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
+                #         else:
+                #             pass
+            
         return frame
 
 
