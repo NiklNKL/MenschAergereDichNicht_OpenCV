@@ -16,11 +16,11 @@ class VideoStream(threading.Thread):
             self.cap = cap
         else:
             self.cap = cv2.VideoCapture(cap_id)
-            self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
-            width = 1920
-            height = 1080
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+            # self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+            # width = 1280
+            # height = 720
+            # self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+            # self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
         _, self.temp_frame = self.cap.read()
         self.frame = self.temp_frame
