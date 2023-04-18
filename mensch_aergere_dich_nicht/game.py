@@ -9,6 +9,8 @@ class Game(threading.Thread):
 
 		threading.Thread.__init__(self)
 
+		self.corners = board_thread.corners
+		
 		self.fields = []
 		self.figures = []
 		self.players = []

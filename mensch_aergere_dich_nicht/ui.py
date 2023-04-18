@@ -25,7 +25,7 @@ class Ui(threading.Thread):
 
         self.board_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
 
-        self.shape = (1920, 1080)
+        self.shape = (2560, 1440)
 
         self.window_name = "Mensch_aergere_dich_nicht"
         self.frame = np.zeros((self.shape[0], self.shape[1], 3), np.uint8)
@@ -51,10 +51,10 @@ class Ui(threading.Thread):
         
         ##crop frame if it is board
         if is_board:
-            x_old,y_old,_ = frame.shape
-            x_diff = (x_old - shape[1])//2
-            y_diff = (y_old - shape[0])//2
-            frame = frame[ x_diff:x_diff+shape[1],y_diff:y_diff+shape[0],:]
+            target = np.float32([[0,0],[self.board_frame_shape[0],0],[0,self.board_frame_shape[1]],[self.board_frame_shape[0],self.board_frame_shape[1]]])
+            transform = cv2.getPerspectiveTransform(np.float32(self.game_thread.corners), target)
+            
+            frame = cv2.warpPerspective(frame, transform, shape)
             
         resize_frame = cv2.resize(frame, shape)
 
@@ -300,9 +300,17 @@ class Ui(threading.Thread):
             self.update_instruction()
             self.update_terminal()
             if self.use_img:
-                board_frame = cv2.resize(self.board_image, self.board_frame_shape)
-                board_overlay_resize = cv2.resize(self.board_overlay, self.board_frame_shape)
+                target = np.float32([[0,0],[self.board_frame_shape[0],0],[0,self.board_frame_shape[1]],[self.board_frame_shape[0],self.board_frame_shape[1]]])
+                transform = cv2.getPerspectiveTransform(np.float32(self.game_thread.corners), target)
+                
+                board_frame = cv2.warpPerspective(self.board_image, transform, self.board_frame_shape)
+                # board_frame = self.board_image[corner_tl[1]:corner_br[1],corner_tl[0]:corner_br[0],:]
+                board_frame = cv2.resize(board_frame, self.board_frame_shape)
+
+                board_overlay_resize = cv2.warpPerspective(self.board_overlay, transform, self.board_frame_shape)
+                board_overlay_resize = cv2.resize(board_overlay_resize, self.board_frame_shape)
                 board_frame = cv2.bitwise_or(board_overlay_resize, board_frame)
+
                 #bitwise or for testing
             else:
                 board_frame = self.prepare_frame(self.board_cap, self.board_frame_shape, self.board_overlay, is_board=True)

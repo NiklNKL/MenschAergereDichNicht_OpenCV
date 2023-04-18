@@ -11,8 +11,8 @@ def main():
 
 
     fps_tracker = Fps("MainThread")
-    dice_camera_id = 3
-    hand_camera_id = 4
+    dice_camera_id = 1
+    hand_camera_id = 1
     board_camera_id = 1
 
     prev_frame_time = 0
@@ -82,10 +82,10 @@ def main():
     new_time = time.time()
 
     game_thread.start()
-    
+    game_thread.corners = board_thread.corners
     while not game_thread.initialized:
         pass
-
+    
     print(f"game_thread initialized! It took: {(time.time()-new_time):.3f} seconds.\n")
     new_time = time.time()
 
