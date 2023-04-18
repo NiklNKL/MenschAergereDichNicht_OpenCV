@@ -23,6 +23,7 @@ class BoardReader(threading.Thread):
         self.index_of_green =  None
         self.home_fields = None
         self.end_fields = None
+        self.corners = None
 
         self.initialized = False
 
@@ -72,6 +73,14 @@ class BoardReader(threading.Thread):
         ## define playground borders
         epsilon = 0.01*cv2.arcLength(cnt,True)
         corners = np.squeeze(cv2.approxPolyDP(cnt, epsilon, True), axis=1)
+
+        ## top left field is first value and bottom right field is last value
+        corners = np.array(sorted(corners, key= lambda c: c[0]+c[1]))
+        ## set top right field to index 1 if not already, bottom left to index 2 
+        if corners[1][1]>corners[2][1]:
+            corners[[1,2]]=corners[[2,1]]
+        print(f"setting corners. No. of corners: {len(corners)}")
+        self.corners = corners
 
         if not len(corners) == 4:
             raise Exception("Could not find four corners of playground")
