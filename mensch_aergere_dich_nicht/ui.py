@@ -126,12 +126,15 @@ class Ui(threading.Thread):
         self.instruction_frame = cv2.rectangle(self.instruction_frame, (0, 0), (x, y), color, 5) 
         self.instruction_frame = cv2.putText(self.instruction_frame, "Game HUB" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, 1.2, (255, 255, 255), 1)
 
-    def figure_ids_to_string(self, array):
+    def figure_ids_to_string(self, figure_array):
+        current_figure_id_array = []
+        for figure in figure_array:
+            current_figure_id_array.append(figure[0].id)
         result = ""
-        for index, id in enumerate(array):
-            if index < len(array)-1:
+        for index, id in enumerate(current_figure_id_array):
+            if index < len(current_figure_id_array)-1:
                 result = result + str(id+1)
-                if index + 1 == len(array)-1:
+                if index + 1 == len(current_figure_id_array)-1:
                     result = result + " und "
                 else:
                     result = result + ", "
@@ -143,7 +146,7 @@ class Ui(threading.Thread):
         if str(self.game_thread.turn_status.name) == "ROLL_DICE":
             return f"Du hast eine {self.dice_thread.current_eye_count} gewuerfelt."
         elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE":
-            return f"Du hast Figur {self.figure_ids_to_string(self.game_thread.current_figure_ids)} zur Auswahl."
+            return f"Du hast Figur {self.figure_ids_to_string(self.game_thread.current_turn_available_figures)} zur Auswahl."
         elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE_ACCEPT":
             return f"Du hast Figur {str(self.game_thread.selected_figure.id+1)} gewaehlt."
         elif str(self.game_thread.turn_status.name) == "MOVE_FIGURE":
