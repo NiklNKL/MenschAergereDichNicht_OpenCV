@@ -344,12 +344,9 @@ class HandReader(threading.Thread):
 
             framergb = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
             # Get hand landmark prediction
-            result = self.hands.process(framergb)
-            fingerResult = self.finger.process(framergb)
-
             
-
             if self.video_feed == "gesture":
+                result = self.hands.process(framergb)
                 className, self.temp_overlay = self.getGesture(result, self.temp_overlay)
                 self.update_class(className)
 
@@ -360,6 +357,7 @@ class HandReader(threading.Thread):
                                 1, (0,0,255), 2, cv2.LINE_AA)
                 
             elif self.video_feed == "counter":
+                fingerResult = self.finger.process(framergb)
                 count, self.temp_overlay = self.getFingers(fingerResult, self.temp_overlay)
                 self.update_count(count)
 
