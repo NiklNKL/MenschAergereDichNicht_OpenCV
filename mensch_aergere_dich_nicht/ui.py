@@ -23,7 +23,7 @@ class Ui(threading.Thread):
 
         self.board_highlighting_treshold = 0
 
-        self.board_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
+        self.board_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/reallife_frame.jpg', cv2.IMREAD_COLOR)
 
         self.shape = (1920, 1080)
         self.font_scale_default = self.shape[0]/1920
@@ -224,11 +224,11 @@ class Ui(threading.Thread):
             else:
                 highlighting_color = (0, 215, 255)
 
-            cv2.circle(frame, (int(coordinates[0]), int(coordinates[1])), radius, highlighting_color, 20)
+            cv2.circle(frame, (int(coordinates[0]), int(coordinates[1])), radius, highlighting_color, round(self.font_scale_default*10))
 
             text_font = cv2.FONT_HERSHEY_DUPLEX
-            text_scale = self.font_scale_default*1.5
-            text_thickness = round(self.font_scale_default*10)
+            text_scale = self.font_scale_default*1.2
+            text_thickness = round(self.font_scale_default*2.5)
             text = str(idx+1)
 
             text_size, _ = cv2.getTextSize(text, text_font, text_scale, text_thickness)
@@ -261,7 +261,7 @@ class Ui(threading.Thread):
 
                             available_figure_coordinates = available_figure_coordinates[:-1]
 
-                            cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_figure_radius, (255, 0, 255), 20)
+                            cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_figure_radius, (255, 0, 255), round(self.font_scale_default*10))
 
                             text_move = str(f.id+1)
                                 

@@ -17,7 +17,7 @@ class BoardReader(threading.Thread):
         ## for testing purposes a single frame can be used
         self.use_img = use_img
         if self.use_img:
-            self.frame = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
+            self.frame = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/reallife_frame.jpg', cv2.IMREAD_COLOR)
         
         self.street = None
         self.index_of_green =  None
@@ -174,9 +174,9 @@ class BoardReader(threading.Thread):
         ## detect "street"
         detected_circles = self.detect_circles(gray, corners, center, 
                                                 minR_factor=0.0333960945049427, 
-                                                maxR_factor=0.03784890710560172, 
+                                                maxR_factor=0.04, 
                                                 fields=32)
-
+        
         ## order by angle with vector (center->green start)
         green = street[index_of_green][1:]
         angles = []
@@ -209,29 +209,29 @@ class BoardReader(threading.Thread):
             home_fields.append(homefield)
             end_fields.append(endfield)
 
-        """
-        end_fields = np.uint16(np.around(end_fields))
-        home_fields = np.uint16(np.around(home_fields))
-        for index, color in enumerate(["G","R","B","Y"]):
-            homefield = home_fields[index]
-            endfield = end_fields[index]
-            for idx, (_, a, b, r) in enumerate(homefield):
-            # a, b, r = pt[1], pt[2], pt[3]
-            # Draw the circumference of the circle.
-                cv2.circle(frame, (a, b), r, (0, 255, 0), 20)
-                # Draw a small circle (of radius 1) to show the center.
-                cv2.putText(frame, f"H_{color}_{idx}", (a, b),
-                    cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
-            for idx, (_, a, b, r) in enumerate(endfield):
-            # a, b, r = pt[1], pt[2], pt[3]
-            # Draw the circumference of the circle.
-                cv2.circle(frame, (a, b), r, (0, 255, 0), 20)
-                # Draw a small circle (of radius 1) to show the center.
-                cv2.putText(frame, f"E_{color}_{idx}", (a, b),
-                    cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
-        cv2.imshow("frame", frame)
-        cv2.waitKey(0)
-        """
+        
+        # end_fields = np.uint16(np.around(end_fields))
+        # home_fields = np.uint16(np.around(home_fields))
+        # for index, color in enumerate(["G","R","B","Y"]):
+        #     homefield = home_fields[index]
+        #     endfield = end_fields[index]
+        #     for idx, (_, a, b, r) in enumerate(homefield):
+        #     # a, b, r = pt[1], pt[2], pt[3]
+        #     # Draw the circumference of the circle.
+        #         cv2.circle(self.frame, (a, b), r, (0, 255, 0), 20)
+        #         # Draw a small circle (of radius 1) to show the center.
+        #         cv2.putText(self.frame, f"H_{color}_{idx}", (a, b),
+        #             cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
+        #     for idx, (_, a, b, r) in enumerate(endfield):
+        #     # a, b, r = pt[1], pt[2], pt[3]
+        #     # Draw the circumference of the circle.
+        #         cv2.circle(self.frame, (a, b), r, (0, 255, 0), 20)
+        #         # Draw a small circle (of radius 1) to show the center.
+        #         cv2.putText(self.frame, f"E_{color}_{idx}", (a, b),
+        #             cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
+        
+        # cv2.waitKey(0)
+        
 
         print(f"Finished non_street detection with {len(sortedStreet)} fields")
         return home_fields, end_fields
@@ -254,7 +254,7 @@ class BoardReader(threading.Thread):
             mask_area = cv2.bitwise_and(blurred_houses, mask)
             
             ## check if pixels in the HSV color range 40-70 (green) are found in masked area
-            if self.check_color_in_mask(mask_area, [(40, 100, 100), (70,255,255)]):
+            if self.check_color_in_mask(mask_area, [(35, 40, 40), (120,255,255)]):
                 """
                 ## show circle containing the green startingfield
                 # cv2.imwrite("exports/masks/mask_area"+str(index)+".png", mask_area)
