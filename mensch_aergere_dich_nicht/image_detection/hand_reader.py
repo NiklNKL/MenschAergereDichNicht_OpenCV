@@ -68,7 +68,7 @@ class HandReader(threading.Thread):
 
         self._stop_event = threading.Event()
 
-    def countFingers(self, results):
+    def count_fingers(self, results):
     
         # Initialize a dictionary to store the count of fingers of both hands.
         count = {'RIGHT': 0, 'LEFT': 0}
@@ -230,7 +230,6 @@ class HandReader(threading.Thread):
             landmarks = []
             for handslms in result.multi_hand_landmarks:
                 for lm in handslms.landmark:
-                    # print(id, lm)
                     lmx = int(lm.x * self.x)
                     lmy = int(lm.y * self.y)
 
@@ -239,15 +238,13 @@ class HandReader(threading.Thread):
                 # Drawing landmarks on frames
                 self.mpDraw.draw_landmarks(frame, handslms, self.mpHands.HAND_CONNECTIONS)
             # Predict gesture in Hand Gesture Recognition project
-
-            
+        
             try:
                 prediction = self.model([landmarks])
             except Exception:
                 landmarks = np.expand_dims(np.stack(landmarks), axis=0)
                 prediction = self.model(landmarks)
-
-            
+         
             classID = np.argmax(prediction)
             className = self.classNames[classID]
             # show the prediction on the frame
@@ -269,7 +266,7 @@ class HandReader(threading.Thread):
                                                                                     thickness=2, circle_radius=2),
                                         connection_drawing_spec=self.mpDraw.DrawingSpec(color=(0,255,0),
                                                                                         thickness=2, circle_radius=2))
-            count, fingers_statuses = self.countFingers(result)
+            count, fingers_statuses = self.count_fingers(result)
             frame = self.annotate(frame, result,fingers_statuses, count)
             count = sum(count.values())
             # show the prediction on the frame
@@ -290,15 +287,10 @@ class HandReader(threading.Thread):
         else:
             # Andernfalls erhöhe die Zeit ohne Änderung um die vergangene Zeit seit dem letzten Update
             self.time_without_change += time() - self.last_update_time
-
-        self.last_update_time = time()
         # Wenn die Zeit ohne Änderung größer als time_threshold Sekunden ist, aktualisiere das Bild
         if self.time_without_change >= self.time_threshold:
-            # Hier kann der aktuelle Wert der Variable abgerufen werden
-            current_value = className
             # Setze die letzte Aktualisierungszeit auf die aktuelle Zeit
-            # self.last_update_time = time.time()
-            self.current_class = current_value
+            self.current_class = className
 
     def update_count(self, count):
     # Wenn sich der Klassenname geändert hat, setze die Zeit ohne Änderung auf 0 zurück und aktualisiere previous_class
@@ -328,19 +320,13 @@ class HandReader(threading.Thread):
     def stopped(self):
         return self._stop_event.is_set()
 
-
     def run(self):
-        className = ''
-        count = -1
         while True:
             # Initialize the webcam for Hand Gesture Recognition Python proje
             self.frame = self.cap.frame
             self.x , self.y, self.c = self.frame.shape
 
             self.temp_overlay = np.zeros((self.x, self.y, 3), np.uint8)
-
-            # # Flip the frame vertically
-            # self.frame = cv2.flip(self.frame, 1)
 
             framergb = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
             # Get hand landmark prediction
@@ -367,7 +353,6 @@ class HandReader(threading.Thread):
                 cv2.putText(self.temp_overlay, "Detected Count: " + str(self.current_count), (800, 30), cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0,0,255), 2, cv2.LINE_AA)
             self.overlay = self.temp_overlay
-            # UiHandler.update(handFrame = self.frame)
             self.initialized = True
             self.stats = self.fps_tracker.stats
             if self.stopped():

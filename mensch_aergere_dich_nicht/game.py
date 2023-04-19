@@ -160,7 +160,9 @@ class Game(threading.Thread):
 			# self.turn_status = TurnStatus.MOVE_FIGURE
 			# self.wait_for_gesture("thumbs up")
 			## führe Zug aus
-			self.move(player, chosen_figure, eye_count)
+			if not self.stopped() and not self.game_status == GameStatus.QUIT:
+				self.move(player, chosen_figure, eye_count)
+
 		else:
 			self.turn_status = TurnStatus.SELECT_FIGURE_SKIP
 			self.wait_for_gesture("thumbs up")
