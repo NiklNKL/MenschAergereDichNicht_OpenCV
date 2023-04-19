@@ -19,6 +19,7 @@ class Game(threading.Thread):
 		self.selected_figure = 0
 		self.current_turn_eye_count = 0
 		self.current_turn_available_figures = []
+		self.current_try = 0
 
 		self.dice_thread = dice_thread
 		self.hand_thread = hand_thread
@@ -115,19 +116,14 @@ class Game(threading.Thread):
 				quit = self.gesture_should_game_quit()
 				if quit:
 					return False
-				else:
-					continue
 
 			if current_gesture != last_gesture and current_gesture == goal_gesture:
 				return True
-			else:
-					last_gesture = current_gesture
-
-			if second_goal_gesture is not None: 
+			elif second_goal_gesture is not None: 
 				if current_gesture != last_gesture and current_gesture == second_goal_gesture:
 					return False
-				else:
-					last_gesture = current_gesture
+				
+			last_gesture = current_gesture
 
 	def wait_for_count(self, possible_figure_ids):
 		self.hand_thread.video_feed = "counter"
@@ -161,8 +157,8 @@ class Game(threading.Thread):
 				self.turn_status = TurnStatus.SELECT_FIGURE_ACCEPT
 				figure_accepted = self.wait_for_gesture("thumbs up", "thumbs down")
 
-			self.turn_status = TurnStatus.MOVE_FIGURE
-			self.wait_for_gesture("thumbs up")
+			# self.turn_status = TurnStatus.MOVE_FIGURE
+			# self.wait_for_gesture("thumbs up")
 			## führe Zug aus
 			self.move(player, chosen_figure, eye_count)
 		else:
@@ -290,18 +286,18 @@ class Game(threading.Thread):
 
 			self.round_status = self.get_status_by_player_id(player.id)
 
-			self.turn_status = TurnStatus.PLAYER_READY
-			self.wait_for_gesture("thumbs up")
+			# self.turn_status = TurnStatus.PLAYER_READY
+			# self.wait_for_gesture("thumbs up")
 
 			## if no figures are on the street and possible endfield figures are at the end
 			if not player.has_movable_figures() and not self.game_status == GameStatus.QUIT:
-				for turn in range(4):
+				for tries in range(4):
 					if self.stopped() or self.game_status == GameStatus.QUIT:
 						break
-
-					self.turn_status = TurnStatus.ROLL_DICE
-					if turn == 3:
-						self.turn_status.SELECT_FIGURE_SKIP
+					self.current_try = tries
+					self.turn_status = TurnStatus.ROLL_DICE_HOME
+					if tries == 3:
+						self.turn_status = TurnStatus.SELECT_FIGURE_SKIP
 						self.wait_for_gesture("thumbs up")
 						break
 

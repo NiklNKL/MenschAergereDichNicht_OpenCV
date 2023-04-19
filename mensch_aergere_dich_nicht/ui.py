@@ -60,10 +60,15 @@ class Ui(threading.Thread):
         resize_frame = cv2.resize(frame, shape)
 
         if overlay is not None:
+            if is_board:
+                overlay = cv2.warpPerspective(overlay, transform, shape)
             resize_overlay = cv2.resize(overlay, shape)
             ignore_color = np.asarray((0,0,0))
             mask = ~(resize_overlay==ignore_color).all(-1)
-            resize_frame[mask] = cv2.addWeighted(resize_frame[mask], 0, resize_overlay[mask], 1, 0)
+            try:
+                resize_frame[mask] = cv2.addWeighted(resize_frame[mask], 0, resize_overlay[mask], 1, 0)
+            except Exception:
+                pass
             final_frame = resize_frame
         else:
             final_frame = resize_frame
@@ -85,32 +90,26 @@ class Ui(threading.Thread):
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.game_thread.game_status), int(0+x*0.03), int(0+y*0.5))
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.game_thread.round_status), int(0+x*0.03), int(0+y*0.7))
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.game_thread.turn_status), int(0+x*0.03), int(0+y*0.9))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, "Finger:", int(0+x*0.73), int(0+y*0.9))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, "Gesture:", int(0+x*0.58), int(0+y*0.5))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, "Dice:", int(0+x*0.73), int(0+y*0.7))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_count), int(0+x*0.88), int(0+y*0.9))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_class), int(0+x*0.75), int(0+y*0.5))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.dice_thread.current_eye_count), int(0+x*0.83), int(0+y*0.7))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, "Finger:", int(0+x*0.8), int(0+y*0.9))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, "Gesture:", int(0+x*0.54), int(0+y*0.5))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, "Dice:", int(0+x*0.8), int(0+y*0.7))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_count), int(0+x*0.95), int(0+y*0.9))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_class), int(0+x*0.71), int(0+y*0.5))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.dice_thread.current_eye_count), int(0+x*0.9), int(0+y*0.7))
         
     def update_instruction(self):
         self.instruction_frame = np.full((self.instruction_frame_shape[1], self.instruction_frame_shape[0], 3), 255, np.uint8)
         x,y = self.instruction_frame_shape
         
-        self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.85), y), (x, int(y-y*0.2)), (0,0,0), 2)
-        # if self.game_thread.turn_status.value.get("continue") == True:
-        #     cv2.putText(self.instruction_frame, "Fortfahren:" ,(int(0+x*0.32), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
-        # if self.game_thread.turn_status.value.get("back") == True:
-        #     cv2.putText(self.instruction_frame, "Zurueck:" ,(int(0+x*0.6), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
         if self.game_thread.turn_status.value.get("quit") == True:
-            cv2.putText(self.instruction_frame, "Spiel beenden:" ,(int(0+x*0.86), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*1, (0, 0, 0), round(self.font_scale_default*1))
-            
+            cv2.putText(self.instruction_frame, "Quit game = Peace" ,(int(0+x*0.84), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*1, (0, 0, 0), round(self.font_scale_default*1))
+            self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.83), y), (x, int(y-y*0.2)), (0,0,0), 2)
 
-        text = self.get_correct_instruction()
-        text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_PLAIN, 3, 2)[0]
-        text_x = int((self.instruction_frame.shape[1] - text_size[0]) / 2)
-        text_y = int((self.instruction_frame.shape[0] + text_size[1]) / 2)
+        upper_text = self.get_correct_instruction(upper_text = True)
+        lower_text = self.get_correct_instruction(upper_text=False)
 
-        cv2.putText(self.instruction_frame, text ,(text_x,text_y), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*2, (0, 0, 0), round(self.font_scale_default*2))
+        cv2.putText(self.instruction_frame, upper_text ,(int(0+x*0.025),int(0+y*0.5)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*2, (0, 0, 0), round(self.font_scale_default*2))
+        cv2.putText(self.instruction_frame, lower_text ,(int(0+x*0.025),int(0+y*0.8)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*2, (0, 0, 0), round(self.font_scale_default*2))
         
         if str(self.game_thread.round_status.name) == "PLAYER_GREEN":
             color = (35,168,5)
@@ -133,38 +132,71 @@ class Ui(threading.Thread):
             current_figure_id_array.append(figure[0].id)
         result = ""
         for index, id in enumerate(current_figure_id_array):
-            if index < len(current_figure_id_array)-1:
+            if len(current_figure_id_array) == 1:
+                result = result + str(id+1) + " is "
+                
+            elif index < len(current_figure_id_array)-1:
                 result = result + str(id+1)
+
                 if index + 1 == len(current_figure_id_array)-1:
-                    result = result + " und "
+                    result = result + " and "
+
                 else:
                     result = result + ", "
             else:
                 result = result + str(id+1)
         return result
 
-    def get_correct_instruction(self):
-        if str(self.game_thread.game_status.name) == "SHOULD_QUIT":
-            return f"Please confirm with a thumbs up, if you want to quit the game"
-        elif str(self.game_thread.game_status.name) == "QUIT":
-            return f"Ending..."
-        elif str(self.game_thread.turn_status.name) == "ROLL_DICE":
-            return f"You rolled a {self.dice_thread.current_eye_count}"
-        elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE":
-            return f"Figures {self.figure_ids_to_string(self.game_thread.current_turn_available_figures)} are available. Choose by showing a number"
-        elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE_ACCEPT":
-            return f"Figure {str(self.game_thread.selected_figure.id+1)} was selected."
-        elif str(self.game_thread.turn_status.name) == "MOVE_FIGURE":
-            return f"Bewege Figur {str(self.game_thread.selected_figure.id+1)} und bestaetige danach."
-        elif str(self.game_thread.turn_status.name) == "KICK":
-            return f"You kicked a figure! :O"
-        
+    def get_correct_instruction(self, upper_text):
+        game_status = str(self.game_thread.game_status.name)
+        turn_status = str(self.game_thread.turn_status.name)
+        current_player_color = self.game_thread.players[self.game_thread.current_player].color
+        if upper_text:
+            if game_status == "SHOULD_QUIT":
+                return f"Exit game?"
+            elif game_status == "QUIT":
+                return f"Ending..."
+            elif game_status == "START":
+                return f"Game is ready!"
+            elif game_status == "FINISHED":
+                return f"The game is over!"
+            elif turn_status == "ROLL_DICE":
+                return f"Player {current_player_color}: Roll the Dice!"
+            elif turn_status == "ROLL_DICE_HOME":
+                return f"Player {current_player_color}: Roll the Dice! {3-self.game_thread.current_try} tries left ..."
+            elif turn_status == "SELECT_FIGURE":
+                return f"Figures {self.figure_ids_to_string(self.game_thread.current_turn_available_figures)} are available."
+            elif turn_status == "SELECT_FIGURE_ACCEPT":
+                return f"Figure {str(self.game_thread.selected_figure.id+1)} was selected."
+            elif turn_status == "SELECT_FIGURE_SKIP":
+                return f"You used all your tries .."
+            elif turn_status == "KICK":
+                return f"You kicked a figure! :O"
+            else:
+                return self.game_thread.turn_status.value.get("text")
         else:
-            return self.game_thread.turn_status.value.get("text")
-        # if str(self.game_thread.game_status) == "GameStatus.RUNNING":
-        #     
-        # else:
-        #     return self.game_thread.game_status.value
+            if game_status == "SHOULD_QUIT":
+                return f"Thumbs up to quit"
+            elif game_status == "QUIT":
+                return f"Have a nice day:)"
+            elif game_status == "START":
+                return f"Thumbs up to start"
+            elif game_status == "FINISHED":
+                return f"Player {current_player_color} has won!"
+            elif turn_status == "ROLL_DICE":
+                return f"You rolled a {self.dice_thread.current_eye_count}"
+            elif turn_status == "ROLL_DICE_HOME":
+                return f"You rolled a {self.dice_thread.current_eye_count}"
+            elif turn_status == "SELECT_FIGURE":
+                return f"Show 10 fingers and then the number you want"
+            elif turn_status == "SELECT_FIGURE_ACCEPT":
+                return f"Accept and move or decline by thumbs up or down"
+            elif turn_status == "SELECT_FIGURE_SKIP":
+                return f"Next Player get ready ..."
+            elif turn_status == "KICK":
+                return f"You kicked a figure! :O"
+            else:
+                return self.game_thread.turn_status.value.get("text")
         
     def stop(self):
         self._stop_event.set()
@@ -279,6 +311,7 @@ class Ui(threading.Thread):
             self.board_overlay = self.highlighting()
             self.update_instruction()
             self.update_terminal()
+
             if self.use_img:
                 target = np.float32([[0,0],[self.board_frame_shape[0],0],[0,self.board_frame_shape[1]],[self.board_frame_shape[0],self.board_frame_shape[1]]])
                 transform = cv2.getPerspectiveTransform(np.float32(self.game_thread.corners), target)

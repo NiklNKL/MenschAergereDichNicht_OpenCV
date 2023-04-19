@@ -11,7 +11,7 @@ class Fps():
         self.fps_array_sort = np.array([])
         self.stats = ""
         self.name = name
-        self.debug = True
+        self.debug = False
     
     def counter(self,frame, prev_frame_time, name=None, corner = 1):
 
