@@ -10,9 +10,9 @@ from utilities import Fps
 def main():
 
     fps_tracker = Fps("MainThread")
-    dice_camera_id = 0
-    hand_camera_id = 0
-    board_camera_id = 0
+    dice_camera_id = 1
+    hand_camera_id = 1
+    board_camera_id = 1
 
     prev_frame_time = 0
 
