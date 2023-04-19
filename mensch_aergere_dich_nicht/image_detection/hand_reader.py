@@ -224,7 +224,7 @@ class HandReader(threading.Thread):
         
         return output_image
 
-    def getGesture(self, result, frame):
+    def get_gesture(self, result, frame):
         className = ""
         if result.multi_hand_landmarks:
             landmarks = []
@@ -258,7 +258,7 @@ class HandReader(threading.Thread):
                             1, (0,0,255), 1, cv2.LINE_AA)
         return className, frame
         
-    def getFingers(self, result, frame):
+    def get_fingers(self, result, frame):
         count = 0
         # post process the result
         if result.multi_hand_landmarks:
@@ -347,7 +347,7 @@ class HandReader(threading.Thread):
             
             if self.video_feed == "gesture":
                 result = self.hands.process(framergb)
-                className, self.temp_overlay = self.getGesture(result, self.temp_overlay)
+                className, self.temp_overlay = self.get_gesture(result, self.temp_overlay)
                 self.update_class(className)
 
                 self.temp_overlay = self.fps_tracker.counter(self.temp_overlay, self.prev_frame_time, name="Hand", corner=2)
@@ -358,7 +358,7 @@ class HandReader(threading.Thread):
                 
             elif self.video_feed == "counter":
                 fingerResult = self.finger.process(framergb)
-                count, self.temp_overlay = self.getFingers(fingerResult, self.temp_overlay)
+                count, self.temp_overlay = self.get_fingers(fingerResult, self.temp_overlay)
                 self.update_count(count)
 
                 self.temp_overlay = self.fps_tracker.counter(self.temp_overlay, self.prev_frame_time, name="Hand", corner=2)
