@@ -10,6 +10,8 @@ class Ui(threading.Thread):
         threading.Thread.__init__(self)
         self._stop_event = threading.Event()
 
+        self.turn_status = None
+
         self.player, self.dice, self.turn, self.prompt, self.movable_figures = "", "", "", "", ""
         
         self.game_thread = game_thread
@@ -188,11 +190,21 @@ class Ui(threading.Thread):
         frame = cv2.putText(frame, text ,(int(0+x*0.35),text_y), cv2.FONT_HERSHEY_TRIPLEX, self.font_scale_default*1, (255, 255, 255), round(self.font_scale_default*1))
         return frame
     
+    def draw_highlighting(self, frame, coordinates, radius, highlighting_color, idx):
+        
+        cv2.circle(frame, (int(coordinates[0]), int(coordinates[1])), radius, highlighting_color, round(self.font_scale_default*10))
+
+        text_font = cv2.FONT_HERSHEY_DUPLEX
+        text_scale = self.font_scale_default*1.2
+        text_thickness = round(self.font_scale_default*2.5)
+        text = str(idx+1)
+
+        text_size, _ = cv2.getTextSize(text, text_font, text_scale, text_thickness)
+        text_origin = (int(coordinates[0]) - text_size[0] // 2, int(coordinates[1]) + text_size[1] // 2)
+
+        cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness, cv2.LINE_AA)
+
     def highlighting(self):
-        # if self.board_highlighting_treshold == 500:
-        #     self.board_highlighting_treshold = 0
-        # else:
-        #     self.board_highlighting_treshold += 1
 
         frame = np.zeros_like(self.board_image, dtype=np.uint8)
 
@@ -200,6 +212,7 @@ class Ui(threading.Thread):
             coordinates_rel = figure.get_position()
             idx = figure.id
             field_index = None
+        
             try:
                 field_index = self.game_thread.normalize_position(figure.player.id, coordinates_rel)
                 coordinates = self.game_thread.fields[field_index].img_pos
@@ -224,59 +237,44 @@ class Ui(threading.Thread):
             else:
                 highlighting_color = (0, 215, 255)
 
-            cv2.circle(frame, (int(coordinates[0]), int(coordinates[1])), radius, highlighting_color, round(self.font_scale_default*10))
 
-            text_font = cv2.FONT_HERSHEY_DUPLEX
-            text_scale = self.font_scale_default*1.2
-            text_thickness = round(self.font_scale_default*2.5)
-            text = str(idx+1)
-
-            text_size, _ = cv2.getTextSize(text, text_font, text_scale, text_thickness)
-            text_origin = (int(coordinates[0]) - text_size[0] // 2, int(coordinates[1]) + text_size[1] // 2)
-
-            cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness, cv2.LINE_AA)
-
-            if self.game_thread.turn_status.name == "SELECT_FIGURE" or self.game_thread.turn_status.name == "SELECT_FIGURE_ACCEPT" or self.game_thread.turn_status.name == "MOVE_FIGURE":
-
-                if figure.player.id == self.game_thread.current_player:
-
-                    available_figures = self.game_thread.current_turn_available_figures
-
-                    for f, new_pos in available_figures:
-
-                        if f.id == figure.id:
-                            try:
-                                field_index = self.game_thread.normalize_position(f.player.id, new_pos)
-                                available_figure_coordinates = self.game_thread.fields[field_index].img_pos
-                            except IndexError:
-                                if f.get_position() == None:
-                                    index = i % 4
-                                    available_figure_coordinates = f.player.home_fields[index].img_pos
-                                else:
-                                    index = new_pos % 40
-                                    available_figure_coordinates = f.player.end_fields[index].img_pos
+            self.draw_highlighting(frame, coordinates, radius, highlighting_color, idx)
 
 
-                            available_figure_radius = int(available_figure_coordinates[-1])
+        if self.game_thread.turn_status.name == "SELECT_FIGURE" or self.game_thread.turn_status.name == "SELECT_FIGURE_ACCEPT" or self.game_thread.turn_status.name == "MOVE_FIGURE":
 
-                            available_figure_coordinates = available_figure_coordinates[:-1]
+            available_figures = self.game_thread.current_turn_available_figures
 
-                            cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_figure_radius, (255, 0, 255), round(self.font_scale_default*10))
+            for f, new_pos in available_figures:
 
-                            text_move = str(f.id+1)
-                                
-                            text_origin = (int(available_figure_coordinates[0]) - text_size[0] // 2, int(available_figure_coordinates[1]) + text_size[1] // 2)
-                            cv2.putText(frame, text_move, text_origin, text_font, text_scale, (255,255,255), text_thickness, cv2.LINE_AA)
+                try:
+                    field_index = self.game_thread.normalize_position(f.player.id, new_pos)
+                    available_figure_coordinates = self.game_thread.fields[field_index].img_pos
+                except IndexError:
+                    if new_pos == None:
+                        index = i % 4
+                        available_figure_coordinates = f.player.home_fields[index].img_pos
+                    else:
+                        index = new_pos % 40
+                        available_figure_coordinates = f.player.end_fields[index].img_pos
 
-            
+                available_figure_radius = int(available_figure_coordinates[-1])
+
+                available_figure_coordinates = available_figure_coordinates[:-1]
+
+                self.draw_highlighting(frame, available_figure_coordinates, available_figure_radius, (255, 0, 255), f.id)
+
+        self.turn_status = self.game_thread.turn_status.name
+        
         return frame
 
     def run(self):
 
         while True:
 
-            #if self.board_highlighting_treshold == 0:
-            self.board_overlay = self.highlighting()
+            if self.turn_status != self.game_thread.turn_status.name:
+                self.board_overlay = self.highlighting()
+
             self.update_instruction()
             self.update_terminal()
             if self.use_img:
@@ -322,43 +320,4 @@ class Ui(threading.Thread):
                 break
 
 
-    # def highlighting(self, coordinates, idx, highlighting_color):
-        
-    #     #get the original dimensions of the video feed
-    #     #width = int(self.boardFrame.get(cv2.CAP_PROP_FRAME_WIDTH))
-    #     #height = int(self.boardFrame.get(cv2.CAP_PROP_FRAME_HEIGHT)) 
-
-    #     # height, width, _ = self.boardFrame.shape
-    #     height, width, _ = (4672, 7008, 3) # use this for test with the image
-
-    #     #transfrom coordinates so they fit to the new frame size
-    #     transformedX = coordinates[0] / width * 640
-    #     transformedY = coordinates[1] / height * 360
-
-    #     #transfrom the radius
-    #     ratioWidth = width / 640
-    #     ratioHeight = height / 360
-
-    #     if (ratioWidth == ratioHeight or ratioWidth > ratioHeight):
-    #         transformedRadius = coordinates[2] / ratioWidth
-    #     else:
-    #         transformedRadius = coordinates[2] / ratioHeight
-        
-    #     #calculate two points for the rectangle
-    #     # center = [transformedX, transformedY]
-
-    #     #draw a circle
-    #     # cv2.circle(self.boardHighlights, center, transformedRadius, highlighting_color, 5)
-        
-    #     #Id in den Kreis schreiben
-    #     font = cv2.FONT_HERSHEY_SIMPLEX
-    #     text = idx
-    #     text_size, _ = cv2.getTextSize(text, font, 1, 2)
-    #     text_x = int(100 - text_size[0]/2)
-    #     text_y = int(100 + text_size[1]/2)
-    #     cv2.putText(self.boardHighlights, text, (text_x, text_y), font, 1, (255, 255, 255), 2, cv2.LINE_AA)
-
-    #     #Put text with the Figure color and id next to the rectangle
-    #     #cv2.putText(self.boardHighlights, f"Figure_{color}_{idx}",pt2, cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 5)
-    #     #cv2.imshow("test", self.boardHighlights)
-    #     #self.update(boardFrame=frame)
+    
