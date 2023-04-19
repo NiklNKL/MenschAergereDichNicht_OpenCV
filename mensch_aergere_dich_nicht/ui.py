@@ -25,7 +25,7 @@ class Ui(threading.Thread):
 
         self.board_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
 
-        self.shape = (2560, 1440)
+        self.shape = (1920, 1080)
 
         self.window_name = "Mensch_aergere_dich_nicht"
         self.frame = np.zeros((self.shape[0], self.shape[1], 3), np.uint8)
@@ -140,7 +140,11 @@ class Ui(threading.Thread):
         return result
 
     def get_correct_instruction(self):
-        if str(self.game_thread.turn_status.name) == "ROLL_DICE":
+        if str(self.game_thread.game_status.name) == "SHOULD_QUIT":
+            return f"Wenn du das Game beenden willst bestätige jetzt mit einem Daumen hoch"
+        elif str(self.game_thread.game_status.name) == "QUIT":
+            return f"Das Game wird beendet."
+        elif str(self.game_thread.turn_status.name) == "ROLL_DICE":
             return f"Du hast eine {self.dice_thread.current_eye_count} gewuerfelt."
         elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE":
             return f"Du hast Figur {self.figure_ids_to_string(self.game_thread.current_figure_ids)} zur Auswahl."
@@ -150,6 +154,7 @@ class Ui(threading.Thread):
             return f"Bewege Figur {str(self.game_thread.selected_figure.id+1)} und bestaetige danach."
         elif str(self.game_thread.turn_status.name) == "KICK":
             return f"Du hast eine Figur von Spieler X geschlagen"
+        
         else:
             return self.game_thread.turn_status.value.get("text")
         # if str(self.game_thread.game_status) == "GameStatus.RUNNING":

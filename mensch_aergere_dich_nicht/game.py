@@ -89,17 +89,41 @@ class Game(threading.Thread):
 		# 	print({"relPos": figure.relPos, "team": figure.player, "item": figure.id})
 		# print("finished preparations")
 
+	def gesture_should_game_quit(self):
+		self.hand_thread.video_feed = "gesture"
+		self.game_status = GameStatus.SHOULD_QUIT
+
+		while True and not self.stopped():
+			time.sleep(0.1)
+			current_gesture = self.hand_thread.current_class
+						
+			if current_gesture == "thumbs up":
+				self.game_status = GameStatus.QUIT
+				return True
+			elif current_gesture == "thumbs down":
+				self.game_status = GameStatus.RUNNING
+				return False
+
 	def wait_for_gesture(self, goal_gesture, second_goal_gesture = None):
 		self.hand_thread.video_feed = "gesture"
 		last_gesture = self.hand_thread.current_class
 
 		while True and not self.stopped():
 			time.sleep(0.1)
+
 			current_gesture = self.hand_thread.current_class
+			if current_gesture == "peace":
+				quit = self.gesture_should_game_quit()
+				if quit:
+					return False
+				else:
+					continue
+
 			if current_gesture != last_gesture and current_gesture == goal_gesture:
 				return True
 			else:
 					last_gesture = current_gesture
+
 			if second_goal_gesture is not None: 
 				if current_gesture != last_gesture and current_gesture == second_goal_gesture:
 					return False
@@ -112,6 +136,7 @@ class Game(threading.Thread):
 		showed_ten = False
 		while True and not self.stopped():
 			time.sleep(0.1)
+
 			if last_count == 10:
 				showed_ten =True
 			if showed_ten and self.hand_thread.current_count-1 in possible_figure_ids:
@@ -132,7 +157,7 @@ class Game(threading.Thread):
 
 		if len(available_figures) > 0:
 			figure_accepted = False
-			while not figure_accepted and not self.stopped():
+			while not figure_accepted and not self.stopped() and not self.game_status == GameStatus.QUIT:
 				self.turn_status = TurnStatus.SELECT_FIGURE
 				## Wenn Zug möglich, wähle einen aus
 				chosen_figure = self.choose_figure(available_figures)
@@ -197,7 +222,6 @@ class Game(threading.Thread):
 		# Wir zeigen 2 an
 		# Wir haben auch nur 2 zur Auswahl, heißt die ist in available_figures index 0
 
-
 	def calculate_new_pos(self, p_chosen_figure, p_eye_count):
 		newPos = 0
 		if  p_chosen_figure.relPos is not None:
@@ -258,9 +282,8 @@ class Game(threading.Thread):
 
 		self.wait_for_gesture("thumbs up")
 
-		self.game_status = GameStatus.RUNNING
-
-		while True and not self.stopped():
+		while not self.stopped() and not self.game_status == GameStatus.QUIT:
+			self.game_status = GameStatus.RUNNING			
 			
 			player = self.players[self.current_player]
 			print(f"It's {player.color}'s turn!")
@@ -270,11 +293,12 @@ class Game(threading.Thread):
 			self.turn_status = TurnStatus.PLAYER_READY
 			self.wait_for_gesture("thumbs up")
 
-			
-
 			## if no figures are on the street and possible endfield figures are at the end
-			if not player.has_movable_figures():
+			if not player.has_movable_figures() and not self.game_status == GameStatus.QUIT:
 				for turn in range(4):
+					if self.stopped() or self.game_status == GameStatus.QUIT:
+						break
+
 					self.turn_status = TurnStatus.ROLL_DICE
 					if turn == 3:
 						self.turn_status.SELECT_FIGURE_SKIP
@@ -285,11 +309,11 @@ class Game(threading.Thread):
 					eye_count = self.dice_thread.current_eye_count
 					self.current_turn_eye_count = eye_count
 					
-					if eye_count == 6:
+					if eye_count == 6 and not self.game_status == GameStatus.QUIT:
 						self.current_turn(eye_count)
 						break
 			
-			while player.has_movable_figures() and not self.stopped():
+			while player.has_movable_figures() and not self.stopped() and not self.game_status == GameStatus.QUIT:
 				self.turn_status = TurnStatus.ROLL_DICE
 				self.wait_for_gesture("thumbs up")
 				eye_count = self.dice_thread.current_eye_count
