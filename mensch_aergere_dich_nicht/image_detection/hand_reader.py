@@ -211,16 +211,16 @@ class HandReader(threading.Thread):
                 hand_height, hand_width, _ = hand_imageBGR.shape
 
                 # Retrieve the region of interest of the output image where the handprint image will be placed.
-                ROI = output_image[30 : 30 + hand_height,
-                                (hand_index * width//2) + width//12 : ((hand_index * width//2) + width//12 + hand_width)]
+                ROI = output_image[10 : 10 + hand_height,
+                                ((hand_index * width*3//4) + width//24) : (((hand_index * width*3//4) + width//24) + hand_width)]
                 
                 # Overlay the handprint image by updating the pixel values of the ROI of the output image at the 
                 # indexes where the alpha channel has the value 255.
                 ROI[alpha_channel==255] = hand_imageBGR[alpha_channel==255]
 
                 # Update the ROI of the output image with resultant image pixel values after overlaying the handprint.
-                output_image[30 : 30 + hand_height,
-                            (hand_index * width//2) + width//12 : ((hand_index * width//2) + width//12 + hand_width)] = ROI
+                output_image[10 : 10 + hand_height,
+                            ((hand_index * width*3//4) + width//24) : (((hand_index * width*3//4) + width//24) + hand_width)] = ROI
         
         return output_image
 
@@ -251,11 +251,11 @@ class HandReader(threading.Thread):
             classID = np.argmax(prediction)
             className = self.classNames[classID]
             # show the prediction on the frame
-            cv2.putText(frame, "Gesture: " + className, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                            1, (0,0,255), 2, cv2.LINE_AA)
+            cv2.putText(frame, "Gesture: " + className, (10, int(self.x-self.x*0.025)), cv2.FONT_HERSHEY_SIMPLEX,
+                            1, (0,0,255), 1, cv2.LINE_AA)
         else:
-            cv2.putText(frame, "Waiting for Gesture...", (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                            1, (0,0,255), 2, cv2.LINE_AA)
+            cv2.putText(frame, "Waiting for Gesture...", (10, int(self.x-self.x*0.025)), cv2.FONT_HERSHEY_SIMPLEX,
+                            1, (0,0,255), 1, cv2.LINE_AA)
         return className, frame
         
     def getFingers(self, result, frame):
@@ -273,11 +273,11 @@ class HandReader(threading.Thread):
             frame = self.annotate(frame, result,fingers_statuses, count)
             count = sum(count.values())
             # show the prediction on the frame
-            cv2.putText(frame, "Count: " + str(count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                            1, (0,0,255), 2, cv2.LINE_AA)
+            cv2.putText(frame, "Count: " + str(count), (10, int(self.y-self.y*0.025)), cv2.FONT_HERSHEY_SIMPLEX,
+                            1, (0,0,255), 1, cv2.LINE_AA)
         else:
-            cv2.putText(frame, "Waiting for Fingercount...", (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                            1, (0,0,255), 2, cv2.LINE_AA)
+            cv2.putText(frame, "Waiting for Fingercount...", (10, int(self.y-self.y*0.025)), cv2.FONT_HERSHEY_SIMPLEX,
+                            1, (0,0,255), 1, cv2.LINE_AA)
         return count, frame
 
     def update_class(self, className):

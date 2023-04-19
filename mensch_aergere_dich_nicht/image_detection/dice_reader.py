@@ -97,22 +97,23 @@ class DiceReader(threading.Thread):
             max_y = 0
             min_x = self.temp_overlay.shape[1]
             min_y = self.temp_overlay.shape[0]
-
-            for keypoint in keypoints:
-                self.temp_overlay = cv2.circle(self.temp_overlay, (int(keypoint.pt[0]),int(keypoint.pt[1])), int(keypoint.size*0.90), (255,0,0), 4)
-                if keypoint.pt[0] > max_x:
-                    max_x = keypoint.pt[0] + keypoint.size
-                elif keypoint.pt[0] < min_x:
-                    min_x = keypoint.pt[0] - keypoint.size
-                if keypoint.pt[1] > max_y:
-                    max_y = keypoint.pt[1] + keypoint.size
-                elif keypoint.pt[1] < min_y:
-                    min_y = keypoint.pt[1] - keypoint.size
-            try:
-                self.temp_overlay = cv2.rectangle(self.temp_overlay, (int(max_x), int(max_y)), (int(min_x), int(min_y)), (0, 255, 0),4)
-                self.temp_overlay = cv2.putText(self.temp_overlay, f"Dice: {len(keypoints)}" ,(int(min_x), int(min_y-30)), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 2, cv2.LINE_AA)
-            except Exception:
-                pass
+            if len(keypoints) > 0:
+                for keypoint in keypoints:
+                    self.temp_overlay = cv2.circle(self.temp_overlay, (int(keypoint.pt[0]),int(keypoint.pt[1])), int(keypoint.size*0.90), (255,0,0), 4)
+                    if keypoint.pt[0] > max_x:
+                        max_x = keypoint.pt[0] + keypoint.size
+                    elif keypoint.pt[0] < min_x:
+                        min_x = keypoint.pt[0] - keypoint.size
+                    if keypoint.pt[1] > max_y:
+                        max_y = keypoint.pt[1] + keypoint.size
+                    elif keypoint.pt[1] < min_y:
+                        min_y = keypoint.pt[1] - keypoint.size
+                try:
+                    if len(keypoints) > 1:
+                        self.temp_overlay = cv2.rectangle(self.temp_overlay, (int(max_x), int(max_y)), (int(min_x), int(min_y)), (0, 255, 0),2)
+                        self.temp_overlay = cv2.putText(self.temp_overlay, f"Dice: {len(keypoints)}" ,(int(min_x), int(min_y-30)), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2, cv2.LINE_AA)
+                except Exception:
+                    pass
             
             self.temp_overlay = self.fps_tracker.counter(self.temp_overlay, self.prev_frame_time, name="Dice", corner=2)
             self.prev_frame_time = time()
@@ -121,7 +122,7 @@ class DiceReader(threading.Thread):
             if self.eye_count <=6:
                 self.update_eye_count(self.eye_count)
 
-            self.temp_overlay = cv2.putText(self.temp_overlay, f"Current Dice: {len(keypoints)}" ,(20, 30), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 2, cv2.LINE_AA)
+            self.temp_overlay = cv2.putText(self.temp_overlay, f"Current Dice: {len(keypoints)}" ,(10, int(self.x-self.x*0.025)), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 1, cv2.LINE_AA)
             self.counter += 1
             self.overlay = self.temp_overlay
             
