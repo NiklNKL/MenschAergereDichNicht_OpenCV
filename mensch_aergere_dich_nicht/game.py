@@ -16,7 +16,6 @@ class Game(threading.Thread):
 		self.players = []
 		self.current_player = 0
 
-		self.current_figure_ids = []
 		self.selected_figure = 0
 		self.current_turn_eye_count = 0
 		self.current_turn_available_figures = []
@@ -128,8 +127,6 @@ class Game(threading.Thread):
 		for figure, id in available_figures:
 			figure_ids.append(figure.id)
 
-		self.current_figure_ids = figure_ids
-
 		if len(available_figures) > 0:
 			figure_accepted = False
 			while not figure_accepted and not self.stopped():
@@ -182,8 +179,11 @@ class Game(threading.Thread):
 		p_chosen_figure.set_position(newPos, field.img_pos, p_current_player.color, p_chosen_figure.id)
 
 	def choose_figure(self, available_figures):
+		current_figure_ids = []
+		for figure in available_figures:
+			current_figure_ids.append(figure[0].id)
 		
-		self.wait_for_count(self.current_figure_ids)
+		self.wait_for_count(current_figure_ids)
 		
 		player = self.players[self.current_player]
 		chosen_figure = player.figures[self.hand_thread.current_count-1]
