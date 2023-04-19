@@ -59,8 +59,8 @@ class Game(threading.Thread):
 			start_field += 10
 		
 		## move green's figure 1 to absPos 36 to test end_fields
-		#self.GameHandler.fields[36].figure = self.GameHandler.players[0].figures[0]
-		#self.GameHandler.players[0].figures[0].set_position(36, self.GameHandler.fields[36].img_pos, self.GameHandler.players[0].color, 1, UiHandler)
+		#self.fields[36].figure = self.players[0].figures[0]
+		#self.players[0].figures[0].set_position(36)
 
 		## move yellow's figure 1 to absPos 6 to test kick logic
 		#self.GameHandler.players[-1].figures[0].set_position(16)
@@ -176,7 +176,7 @@ class Game(threading.Thread):
 
 		## set figure.relPos
 		print(f"Moved {p_chosen_figure.id} to {newPos}")
-		p_chosen_figure.set_position(newPos, field.img_pos, p_current_player.color, p_chosen_figure.id)
+		p_chosen_figure.set_position(newPos)
 
 	def choose_figure(self, available_figures):
 		current_figure_ids = []

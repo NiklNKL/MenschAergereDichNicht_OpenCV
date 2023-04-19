@@ -204,7 +204,7 @@ class Ui(threading.Thread):
                     index = i % 4
                     coordinates = figure.player.home_fields[index].img_pos
                 else:
-                    index = i % 4
+                    index = coordinates_rel % 40
                     coordinates = figure.player.end_fields[index].img_pos
 
             radius = int(coordinates[-1])
@@ -220,11 +220,6 @@ class Ui(threading.Thread):
             else:
                 highlighting_color = (0, 215, 255)
 
-
-            #wenn turnstatus = select figure dann eye count abfragen
-            #dann available moves anzeigen
-            #roundstatus zeigt an welcher spieler dran ist
-
             cv2.circle(frame, (int(coordinates[0]), int(coordinates[1])), radius, highlighting_color, 20)
 
             text_font = cv2.FONT_HERSHEY_DUPLEX
@@ -235,64 +230,40 @@ class Ui(threading.Thread):
             text_size, _ = cv2.getTextSize(text, text_font, text_scale, text_thickness)
             text_origin = (int(coordinates[0]) - text_size[0] // 2, int(coordinates[1]) + text_size[1] // 2)
 
-            cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
+            cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness, cv2.LINE_AA)
 
             if self.game_thread.turn_status.name == "SELECT_FIGURE" or self.game_thread.turn_status.name == "SELECT_FIGURE_ACCEPT" or self.game_thread.turn_status.name == "MOVE_FIGURE":
-              
-
 
                 if figure.player.id == self.game_thread.current_player:
-                    
-                    # player = self.game_thread.players[self.game_thread.current_player]
 
                     available_figures = self.game_thread.current_turn_available_figures
 
                     for f, new_pos in available_figures:
 
-                        try:
-                            field_index = self.game_thread.normalize_position(figure.player.id, new_pos)
-                            available_figure_coordinates = self.game_thread.fields[field_index].img_pos
-                        except IndexError:
-                            if coordinates_rel == None:
-                                index = i % 4
-                                available_figure_coordinates = figure.player.home_fields[index].img_pos
-                            else:
-                                index = i % 4
-                                available_figure_coordinates = figure.player.end_fields[index].img_pos
+                        if f.id == figure.id:
+                            try:
+                                field_index = self.game_thread.normalize_position(f.player.id, new_pos)
+                                available_figure_coordinates = self.game_thread.fields[field_index].img_pos
+                            except IndexError:
+                                if f.get_position() == None:
+                                    index = i % 4
+                                    available_figure_coordinates = f.player.home_fields[index].img_pos
+                                else:
+                                    index = new_pos % 40
+                                    available_figure_coordinates = f.player.end_fields[index].img_pos
 
 
-                        available_figure_radius = int(available_figure_coordinates[-1])
+                            available_figure_radius = int(available_figure_coordinates[-1])
 
-                        available_figure_coordinates = available_figure_coordinates[:-1]
+                            available_figure_coordinates = available_figure_coordinates[:-1]
 
-                        cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_figure_radius, (255, 0, 255), 20)
+                            cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_figure_radius, (255, 0, 255), 20)
+
+                            text_move = str(f.id+1)
                                 
-                        text_origin = (int(available_figure_coordinates[0]) - text_size[0] // 2, int(available_figure_coordinates[1]) + text_size[1] // 2)
-                        cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
+                            text_origin = (int(available_figure_coordinates[0]) - text_size[0] // 2, int(available_figure_coordinates[1]) + text_size[1] // 2)
+                            cv2.putText(frame, text_move, text_origin, text_font, text_scale, (255,255,255), text_thickness, cv2.LINE_AA)
 
-                # if figure.player.id == self.game_thread.current_player:
-
-                #     if field_index is not None:
-                #         available_figure_coordinates = self.game_thread.fields[field_index + eye_count].img_pos
-
-                        
-
-                        
-        
-                #     else:
-                #         if coordinates_rel == None and eye_count == 6:
-                #             available_figure_coordinates = self.game_thread.fields[figure.player.start_field].img_pos
-                        
-                #             available_move_radius = int(available_figure_coordinates[-1])
-
-                #             available_figure_coordinates = available_figure_coordinates[:-1]
-
-                #             cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_move_radius, (255, 0, 255), 20)
-                            
-                #             text_origin = (int(available_figure_coordinates[0]) - text_size[0] // 2, int(available_figure_coordinates[1]) + text_size[1] // 2)
-                #             cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
-                #         else:
-                #             pass
             
         return frame
 
