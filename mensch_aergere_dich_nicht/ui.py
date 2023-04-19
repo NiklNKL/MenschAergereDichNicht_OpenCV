@@ -145,19 +145,19 @@ class Ui(threading.Thread):
 
     def get_correct_instruction(self):
         if str(self.game_thread.game_status.name) == "SHOULD_QUIT":
-            return f"Wenn du das Game beenden willst bestätige jetzt mit einem Daumen hoch"
+            return f"Please confirm with a thumbs up, if you want to quit the game"
         elif str(self.game_thread.game_status.name) == "QUIT":
-            return f"Das Game wird beendet."
+            return f"Ending..."
         elif str(self.game_thread.turn_status.name) == "ROLL_DICE":
-            return f"Du hast eine {self.dice_thread.current_eye_count} gewuerfelt."
+            return f"You rolled a {self.dice_thread.current_eye_count}"
         elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE":
-            return f"Du hast Figur {self.figure_ids_to_string(self.game_thread.current_turn_available_figures)} zur Auswahl."
+            return f"Figures {self.figure_ids_to_string(self.game_thread.current_turn_available_figures)} are available. Choose by showing a number"
         elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE_ACCEPT":
-            return f"Du hast Figur {str(self.game_thread.selected_figure.id+1)} gewaehlt."
+            return f"Figure {str(self.game_thread.selected_figure.id+1)} was selected."
         elif str(self.game_thread.turn_status.name) == "MOVE_FIGURE":
             return f"Bewege Figur {str(self.game_thread.selected_figure.id+1)} und bestaetige danach."
         elif str(self.game_thread.turn_status.name) == "KICK":
-            return f"Du hast eine Figur von Spieler X geschlagen"
+            return f"You kicked a figure! :O"
         
         else:
             return self.game_thread.turn_status.value.get("text")
