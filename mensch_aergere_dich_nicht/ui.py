@@ -192,8 +192,10 @@ class Ui(threading.Thread):
     
     def draw_highlighting(self, frame, coordinates, radius, highlighting_color, idx):
         
+        #draw circle
         cv2.circle(frame, (int(coordinates[0]), int(coordinates[1])), radius, highlighting_color, round(self.font_scale_default*10))
 
+        #settings for text
         text_font = cv2.FONT_HERSHEY_DUPLEX
         text_scale = self.font_scale_default*1.2
         text_thickness = round(self.font_scale_default*2.5)
@@ -202,17 +204,21 @@ class Ui(threading.Thread):
         text_size, _ = cv2.getTextSize(text, text_font, text_scale, text_thickness)
         text_origin = (int(coordinates[0]) - text_size[0] // 2, int(coordinates[1]) + text_size[1] // 2)
 
+        #add text
         cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness, cv2.LINE_AA)
 
     def highlighting(self):
-
+        
+        #create a mask for highlighting
         frame = np.zeros_like(self.board_image, dtype=np.uint8)
 
+        #iterate through figures
         for i, figure in enumerate(self.game_thread.figures):
             coordinates_rel = figure.get_position()
             idx = figure.id
             field_index = None
         
+            #get the coordinates of the figure
             try:
                 field_index = self.game_thread.normalize_position(figure.player.id, coordinates_rel)
                 coordinates = self.game_thread.fields[field_index].img_pos
@@ -224,10 +230,12 @@ class Ui(threading.Thread):
                     index = coordinates_rel % 40
                     coordinates = figure.player.end_fields[index].img_pos
 
+            #extract the radius
             radius = int(coordinates[-1])
 
             coordinates = coordinates[:-1]
 
+            #set highlighting color
             if figure.player.color == "green":
                 highlighting_color = (0, 150, 0)
             elif figure.player.color == "red":
@@ -237,16 +245,21 @@ class Ui(threading.Thread):
             else:
                 highlighting_color = (0, 215, 255)
 
-
+            #draw circles with text
             self.draw_highlighting(frame, coordinates, radius, highlighting_color, idx)
 
 
+        ## move highlighing
+        
+        #only do move highlighting for certain turn status
         if self.game_thread.turn_status.name == "SELECT_FIGURE" or self.game_thread.turn_status.name == "SELECT_FIGURE_ACCEPT" or self.game_thread.turn_status.name == "MOVE_FIGURE":
 
             available_figures = self.game_thread.current_turn_available_figures
 
+            #iterate through all availablue figures with their new positions
             for f, new_pos in available_figures:
 
+                #get the coordinates of the new field
                 try:
                     field_index = self.game_thread.normalize_position(f.player.id, new_pos)
                     available_figure_coordinates = self.game_thread.fields[field_index].img_pos
@@ -258,12 +271,15 @@ class Ui(threading.Thread):
                         index = new_pos % 40
                         available_figure_coordinates = f.player.end_fields[index].img_pos
 
+                #extract the radius of the new field
                 available_figure_radius = int(available_figure_coordinates[-1])
 
                 available_figure_coordinates = available_figure_coordinates[:-1]
 
+                #draw highlighting around the potential move field
                 self.draw_highlighting(frame, available_figure_coordinates, available_figure_radius, (255, 0, 255), f.id)
 
+        #set turn status to current for performance improvement
         self.turn_status = self.game_thread.turn_status.name
         
         return frame
