@@ -7,7 +7,7 @@ class Figure():
 	def get_position(self):
 		return self.relPos
 	
-	def set_position(self, p_value, coordinates, color, index):
+	def set_position(self, p_value):
 		self.relPos = p_value
 	
 	# returns whether the figure is located on a start field

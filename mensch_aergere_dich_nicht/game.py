@@ -16,7 +16,6 @@ class Game(threading.Thread):
 		self.players = []
 		self.current_player = 0
 
-		self.current_figure_ids = []
 		self.selected_figure = 0
 		self.current_turn_eye_count = 0
 		self.current_turn_available_figures = []
@@ -60,8 +59,8 @@ class Game(threading.Thread):
 			start_field += 10
 		
 		## move green's figure 1 to absPos 36 to test end_fields
-		#self.GameHandler.fields[36].figure = self.GameHandler.players[0].figures[0]
-		#self.GameHandler.players[0].figures[0].set_position(36, self.GameHandler.fields[36].img_pos, self.GameHandler.players[0].color, 1, UiHandler)
+		#self.fields[36].figure = self.players[0].figures[0]
+		#self.players[0].figures[0].set_position(36)
 
 		## move yellow's figure 1 to absPos 6 to test kick logic
 		#self.GameHandler.players[-1].figures[0].set_position(16)
@@ -153,8 +152,6 @@ class Game(threading.Thread):
 		for figure, id in available_figures:
 			figure_ids.append(figure.id)
 
-		self.current_figure_ids = figure_ids
-
 		if len(available_figures) > 0:
 			figure_accepted = False
 			while not figure_accepted and not self.stopped() and not self.game_status == GameStatus.QUIT:
@@ -204,11 +201,14 @@ class Game(threading.Thread):
 
 		## set figure.relPos
 		print(f"Moved {p_chosen_figure.id} to {newPos}")
-		p_chosen_figure.set_position(newPos, field.img_pos, p_current_player.color, p_chosen_figure.id)
+		p_chosen_figure.set_position(newPos)
 
 	def choose_figure(self, available_figures):
+		current_figure_ids = []
+		for figure in available_figures:
+			current_figure_ids.append(figure[0].id)
 		
-		self.wait_for_count(self.current_figure_ids)
+		self.wait_for_count(current_figure_ids)
 		
 		player = self.players[self.current_player]
 		chosen_figure = player.figures[self.hand_thread.current_count-1]

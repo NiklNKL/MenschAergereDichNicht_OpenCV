@@ -93,29 +93,35 @@ class DiceReader(threading.Thread):
 
             self.frame = self.cap.frame
             keypoints = detector.detect(self.frame)
-            self.temp_overlay = cv2.drawKeypoints(self.temp_overlay, keypoints, np.array([]), (0, 0, 255),
-                                          cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+            max_x = 0
+            max_y = 0
+            min_x = self.temp_overlay.shape[1]
+            min_y = self.temp_overlay.shape[0]
+
+            for keypoint in keypoints:
+                self.temp_overlay = cv2.circle(self.temp_overlay, (int(keypoint.pt[0]),int(keypoint.pt[1])), int(keypoint.size*0.90), (255,0,0), 4)
+                if keypoint.pt[0] > max_x:
+                    max_x = keypoint.pt[0] + keypoint.size
+                elif keypoint.pt[0] < min_x:
+                    min_x = keypoint.pt[0] - keypoint.size
+                if keypoint.pt[1] > max_y:
+                    max_y = keypoint.pt[1] + keypoint.size
+                elif keypoint.pt[1] < min_y:
+                    min_y = keypoint.pt[1] - keypoint.size
+            try:
+                self.temp_overlay = cv2.rectangle(self.temp_overlay, (int(max_x), int(max_y)), (int(min_x), int(min_y)), (0, 255, 0),4)
+                self.temp_overlay = cv2.putText(self.temp_overlay, f"Dice: {len(keypoints)}" ,(int(min_x), int(min_y-30)), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 2, cv2.LINE_AA)
+            except:
+                pass
             
             self.temp_overlay = self.fps_tracker.counter(self.temp_overlay, self.prev_frame_time, name="Dice", corner=2)
             self.prev_frame_time = time()
             
-            # if self.counter % 10 == 0:                                   # enter this block every 10 frames.
-            #     reading = len(keypoints)                            # 'reading' counts the number of keypoints (pips).
-            #     self.readings.append(reading)                            # record the reading from this frame.
-
-            # if self.readings[-1] == self.readings[-2] == self.readings[-3]:    # if the last 3 readings are the same...
-            #     self.display.append(self.readings[-1])                    # ... then we have a valid reading.
-
-            # # if the most recent valid reading has changed, and it's something other than zero, then print it.
-            # if self.display[-1] != self.display[-2] and self.display[-1] != 0 and self.display[-1] <=6:
-            #    self.eye_count = self.display[-1]
-
-            # self.eye_count = len(keypoints)
             self.eye_count = len(keypoints)
             if self.eye_count <=6:
                 self.update_eye_count(self.eye_count)
 
-            self.temp_overlay = cv2.putText(self.temp_overlay, f"Current Dice: {len(keypoints)}" ,(20, 300), cv2.FONT_HERSHEY_PLAIN, 4, (0, 0, 255), 3)
+            self.temp_overlay = cv2.putText(self.temp_overlay, f"Current Dice: {len(keypoints)}" ,(20, 30), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 2, cv2.LINE_AA)
             self.counter += 1
             self.overlay = self.temp_overlay
             

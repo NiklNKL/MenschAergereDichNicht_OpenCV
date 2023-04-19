@@ -26,6 +26,7 @@ class Ui(threading.Thread):
         self.board_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
 
         self.shape = (1920, 1080)
+        self.font_scale_default = self.shape[0]/1920
 
         self.window_name = "Mensch_aergere_dich_nicht"
         self.frame = np.zeros((self.shape[0], self.shape[1], 3), np.uint8)
@@ -69,7 +70,7 @@ class Ui(threading.Thread):
         return final_frame
     
     def terminal_text(self, frame, text, x, y):
-        return cv2.putText(frame, text ,(x,y), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.2, (0, 0, 0), 1)
+        return cv2.putText(frame, text ,(x,y), cv2.FONT_HERSHEY_COMPLEX_SMALL, self.font_scale_default*1.2, (0, 0, 0), round(self.font_scale_default*1))
 
     def update_terminal(self):
         self.terminal_frame = np.full((self.terminal_frame_shape[1], self.terminal_frame_shape[0], 3), 255, np.uint8)
@@ -78,30 +79,30 @@ class Ui(threading.Thread):
         # Appbar
         self.terminal_frame = cv2.rectangle(self.terminal_frame, (0, 0), (x, y), (0,0,0), 3)
         self.terminal_frame = cv2.rectangle(self.terminal_frame, (0, 0), (x, int(0+y*0.25)), (0,0,0), -1)
-        self.terminal_frame = cv2.putText(self.terminal_frame, "Terminal" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, 1.2, (255, 255, 255), 1)
+        self.terminal_frame = cv2.putText(self.terminal_frame, "Terminal" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, self.font_scale_default*1.2, (255, 255, 255), int(self.font_scale_default*1))
 
         # Info
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.game_thread.game_status), int(0+x*0.03), int(0+y*0.5))
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.game_thread.round_status), int(0+x*0.03), int(0+y*0.7))
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.game_thread.turn_status), int(0+x*0.03), int(0+y*0.9))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, "Finger:", int(0+x*0.63), int(0+y*0.5))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, "Gesture:", int(0+x*0.63), int(0+y*0.7))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, "Dice:", int(0+x*0.63), int(0+y*0.9))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_count), int(0+x*0.80), int(0+y*0.5))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_class), int(0+x*0.80), int(0+y*0.7))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.dice_thread.current_eye_count), int(0+x*0.80), int(0+y*0.9))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, "Finger:", int(0+x*0.73), int(0+y*0.9))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, "Gesture:", int(0+x*0.58), int(0+y*0.5))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, "Dice:", int(0+x*0.73), int(0+y*0.7))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_count), int(0+x*0.88), int(0+y*0.9))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_class), int(0+x*0.75), int(0+y*0.5))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.dice_thread.current_eye_count), int(0+x*0.83), int(0+y*0.7))
         
     def update_instruction(self):
         self.instruction_frame = np.full((self.instruction_frame_shape[1], self.instruction_frame_shape[0], 3), 255, np.uint8)
         x,y = self.instruction_frame_shape
         
-        self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.3), y), (int(0+x*0.7), int(y-y*0.2)), (0,0,0), 2)
-        if self.game_thread.turn_status.value.get("continue") == True:
-            cv2.putText(self.instruction_frame, "Fortfahren:" ,(int(0+x*0.32), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
-        if self.game_thread.turn_status.value.get("back") == True:
-            cv2.putText(self.instruction_frame, "Zurueck:" ,(int(0+x*0.6), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
+        self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.85), y), (x, int(y-y*0.2)), (0,0,0), 2)
+        # if self.game_thread.turn_status.value.get("continue") == True:
+        #     cv2.putText(self.instruction_frame, "Fortfahren:" ,(int(0+x*0.32), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
+        # if self.game_thread.turn_status.value.get("back") == True:
+        #     cv2.putText(self.instruction_frame, "Zurueck:" ,(int(0+x*0.6), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
         if self.game_thread.turn_status.value.get("quit") == True:
-            cv2.putText(self.instruction_frame, "Spiel beenden:" ,(int(0+x*0.45), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
+            cv2.putText(self.instruction_frame, "Spiel beenden:" ,(int(0+x*0.86), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*1, (0, 0, 0), round(self.font_scale_default*1))
             
 
         text = self.get_correct_instruction()
@@ -109,7 +110,7 @@ class Ui(threading.Thread):
         text_x = int((self.instruction_frame.shape[1] - text_size[0]) / 2)
         text_y = int((self.instruction_frame.shape[0] + text_size[1]) / 2)
 
-        cv2.putText(self.instruction_frame, text ,(text_x,text_y), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
+        cv2.putText(self.instruction_frame, text ,(text_x,text_y), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*2, (0, 0, 0), round(self.font_scale_default*2))
         
         if str(self.game_thread.round_status.name) == "PLAYER_GREEN":
             color = (35,168,5)
@@ -124,14 +125,17 @@ class Ui(threading.Thread):
 
         self.instruction_frame = cv2.rectangle(self.instruction_frame, (0, 0), (x, int(0+y*0.25)), color, -1)    
         self.instruction_frame = cv2.rectangle(self.instruction_frame, (0, 0), (x, y), color, 5) 
-        self.instruction_frame = cv2.putText(self.instruction_frame, "Game HUB" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, 1.2, (255, 255, 255), 1)
+        self.instruction_frame = cv2.putText(self.instruction_frame, "Game HUB" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, self.font_scale_default*1.2, (255, 255, 255), round(self.font_scale_default*1))
 
-    def figure_ids_to_string(self, array):
+    def figure_ids_to_string(self, figure_array):
+        current_figure_id_array = []
+        for figure in figure_array:
+            current_figure_id_array.append(figure[0].id)
         result = ""
-        for index, id in enumerate(array):
-            if index < len(array)-1:
+        for index, id in enumerate(current_figure_id_array):
+            if index < len(current_figure_id_array)-1:
                 result = result + str(id+1)
-                if index + 1 == len(array)-1:
+                if index + 1 == len(current_figure_id_array)-1:
                     result = result + " und "
                 else:
                     result = result + ", "
@@ -147,7 +151,7 @@ class Ui(threading.Thread):
         elif str(self.game_thread.turn_status.name) == "ROLL_DICE":
             return f"Du hast eine {self.dice_thread.current_eye_count} gewuerfelt."
         elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE":
-            return f"Du hast Figur {self.figure_ids_to_string(self.game_thread.current_figure_ids)} zur Auswahl."
+            return f"Du hast Figur {self.figure_ids_to_string(self.game_thread.current_turn_available_figures)} zur Auswahl."
         elif str(self.game_thread.turn_status.name) == "SELECT_FIGURE_ACCEPT":
             return f"Du hast Figur {str(self.game_thread.selected_figure.id+1)} gewaehlt."
         elif str(self.game_thread.turn_status.name) == "MOVE_FIGURE":
@@ -175,13 +179,13 @@ class Ui(threading.Thread):
             text_y = int(0+y*0.038)
             frame = cv2.rectangle(frame, (0, int(y-y*0.025)), (int(0+x*0.65), y), (0,0,0), 2)
             frame = cv2.rectangle(frame, (0, int(y-y*0.025)), (int(0+x*0.65), y), (255,255,255), -1)
-            frame = cv2.putText(frame, "Ein Projekt von Jan Schurkemeyer, Mohamed El Bahar, Dominik Ruth, Simon Schruender und Jan Niklas Ewert", (int(0+x*0.005), int(y-y*0.008)), cv2.FONT_HERSHEY_PLAIN, 0.8, (0,0,0),1)
+            frame = cv2.putText(frame, "Ein Projekt von Jan Schurkemeyer, Mohamed El Bahar, Dominik Ruth, Simon Schruender und Jan Niklas Ewert", (int(0+x*0.005), int(y-y*0.008)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*0.8, (0,0,0),round(self.font_scale_default*1))
         else:
             top_bar_width = int(0+y*0.1)
             text_y = int(0+y*0.07)
         frame = cv2.rectangle(frame, (int(0+x*0.3), 0), (int(0+x*0.7), top_bar_width), (0,0,0), -1)    
         frame = cv2.rectangle(frame, (0, 0), (x, y), (0,0,0), 3) 
-        frame = cv2.putText(frame, text ,(int(0+x*0.35),text_y), cv2.FONT_HERSHEY_TRIPLEX, 1, (255, 255, 255), 1)
+        frame = cv2.putText(frame, text ,(int(0+x*0.35),text_y), cv2.FONT_HERSHEY_TRIPLEX, self.font_scale_default*1, (255, 255, 255), round(self.font_scale_default*1))
         return frame
     
     def highlighting(self):
@@ -204,7 +208,7 @@ class Ui(threading.Thread):
                     index = i % 4
                     coordinates = figure.player.home_fields[index].img_pos
                 else:
-                    index = i % 4
+                    index = coordinates_rel % 40
                     coordinates = figure.player.end_fields[index].img_pos
 
             radius = int(coordinates[-1])
@@ -220,79 +224,50 @@ class Ui(threading.Thread):
             else:
                 highlighting_color = (0, 215, 255)
 
-
-            #wenn turnstatus = select figure dann eye count abfragen
-            #dann available moves anzeigen
-            #roundstatus zeigt an welcher spieler dran ist
-
             cv2.circle(frame, (int(coordinates[0]), int(coordinates[1])), radius, highlighting_color, 20)
 
             text_font = cv2.FONT_HERSHEY_DUPLEX
-            text_scale = 1.5
-            text_thickness = 10
+            text_scale = self.font_scale_default*1.5
+            text_thickness = round(self.font_scale_default*10)
             text = str(idx+1)
 
             text_size, _ = cv2.getTextSize(text, text_font, text_scale, text_thickness)
             text_origin = (int(coordinates[0]) - text_size[0] // 2, int(coordinates[1]) + text_size[1] // 2)
 
-            cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
+            cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness, cv2.LINE_AA)
 
             if self.game_thread.turn_status.name == "SELECT_FIGURE" or self.game_thread.turn_status.name == "SELECT_FIGURE_ACCEPT" or self.game_thread.turn_status.name == "MOVE_FIGURE":
-              
-
 
                 if figure.player.id == self.game_thread.current_player:
-                    
-                    # player = self.game_thread.players[self.game_thread.current_player]
 
                     available_figures = self.game_thread.current_turn_available_figures
 
                     for f, new_pos in available_figures:
 
-                        try:
-                            field_index = self.game_thread.normalize_position(figure.player.id, new_pos)
-                            available_figure_coordinates = self.game_thread.fields[field_index].img_pos
-                        except IndexError:
-                            if coordinates_rel == None:
-                                index = i % 4
-                                available_figure_coordinates = figure.player.home_fields[index].img_pos
-                            else:
-                                index = i % 4
-                                available_figure_coordinates = figure.player.end_fields[index].img_pos
+                        if f.id == figure.id:
+                            try:
+                                field_index = self.game_thread.normalize_position(f.player.id, new_pos)
+                                available_figure_coordinates = self.game_thread.fields[field_index].img_pos
+                            except IndexError:
+                                if f.get_position() == None:
+                                    index = i % 4
+                                    available_figure_coordinates = f.player.home_fields[index].img_pos
+                                else:
+                                    index = new_pos % 40
+                                    available_figure_coordinates = f.player.end_fields[index].img_pos
 
 
-                        available_figure_radius = int(available_figure_coordinates[-1])
+                            available_figure_radius = int(available_figure_coordinates[-1])
 
-                        available_figure_coordinates = available_figure_coordinates[:-1]
+                            available_figure_coordinates = available_figure_coordinates[:-1]
 
-                        cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_figure_radius, (255, 0, 255), 20)
+                            cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_figure_radius, (255, 0, 255), 20)
+
+                            text_move = str(f.id+1)
                                 
-                        text_origin = (int(available_figure_coordinates[0]) - text_size[0] // 2, int(available_figure_coordinates[1]) + text_size[1] // 2)
-                        cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
+                            text_origin = (int(available_figure_coordinates[0]) - text_size[0] // 2, int(available_figure_coordinates[1]) + text_size[1] // 2)
+                            cv2.putText(frame, text_move, text_origin, text_font, text_scale, (255,255,255), text_thickness, cv2.LINE_AA)
 
-                # if figure.player.id == self.game_thread.current_player:
-
-                #     if field_index is not None:
-                #         available_figure_coordinates = self.game_thread.fields[field_index + eye_count].img_pos
-
-                        
-
-                        
-        
-                #     else:
-                #         if coordinates_rel == None and eye_count == 6:
-                #             available_figure_coordinates = self.game_thread.fields[figure.player.start_field].img_pos
-                        
-                #             available_move_radius = int(available_figure_coordinates[-1])
-
-                #             available_figure_coordinates = available_figure_coordinates[:-1]
-
-                #             cv2.circle(frame, (int(available_figure_coordinates[0]), int(available_figure_coordinates[1])), available_move_radius, (255, 0, 255), 20)
-                            
-                #             text_origin = (int(available_figure_coordinates[0]) - text_size[0] // 2, int(available_figure_coordinates[1]) + text_size[1] // 2)
-                #             cv2.putText(frame, text, text_origin, text_font, text_scale, (255,255,255), text_thickness)
-                #         else:
-                #             pass
             
         return frame
 
