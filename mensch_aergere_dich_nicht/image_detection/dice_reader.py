@@ -111,7 +111,7 @@ class DiceReader(threading.Thread):
             try:
                 self.temp_overlay = cv2.rectangle(self.temp_overlay, (int(max_x), int(max_y)), (int(min_x), int(min_y)), (0, 255, 0),4)
                 self.temp_overlay = cv2.putText(self.temp_overlay, f"Dice: {len(keypoints)}" ,(int(min_x), int(min_y-30)), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 2, cv2.LINE_AA)
-            except:
+            except Exception:
                 pass
             
             self.temp_overlay = self.fps_tracker.counter(self.temp_overlay, self.prev_frame_time, name="Dice", corner=2)
