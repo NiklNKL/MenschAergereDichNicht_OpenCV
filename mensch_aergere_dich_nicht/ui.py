@@ -25,7 +25,9 @@ class Ui(threading.Thread):
 
         self.board_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
 
-        self.shape = (2560, 1440)
+        self.shape = (1920, 1080)
+
+        self.font_scale_default = self.shape[0]/1920
 
         self.window_name = "Mensch_aergere_dich_nicht"
         self.frame = np.zeros((self.shape[0], self.shape[1], 3), np.uint8)
@@ -69,7 +71,7 @@ class Ui(threading.Thread):
         return final_frame
     
     def terminal_text(self, frame, text, x, y):
-        return cv2.putText(frame, text ,(x,y), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.2, (0, 0, 0), 1)
+        return cv2.putText(frame, text ,(x,y), cv2.FONT_HERSHEY_COMPLEX_SMALL, self.font_scale_default*1.2, (0, 0, 0), round(self.font_scale_default*1))
 
     def update_terminal(self):
         self.terminal_frame = np.full((self.terminal_frame_shape[1], self.terminal_frame_shape[0], 3), 255, np.uint8)
@@ -78,30 +80,30 @@ class Ui(threading.Thread):
         # Appbar
         self.terminal_frame = cv2.rectangle(self.terminal_frame, (0, 0), (x, y), (0,0,0), 3)
         self.terminal_frame = cv2.rectangle(self.terminal_frame, (0, 0), (x, int(0+y*0.25)), (0,0,0), -1)
-        self.terminal_frame = cv2.putText(self.terminal_frame, "Terminal" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, 1.2, (255, 255, 255), 1)
+        self.terminal_frame = cv2.putText(self.terminal_frame, "Terminal" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, self.font_scale_default*1.2, (255, 255, 255), int(self.font_scale_default*1))
 
         # Info
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.game_thread.game_status), int(0+x*0.03), int(0+y*0.5))
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.game_thread.round_status), int(0+x*0.03), int(0+y*0.7))
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.game_thread.turn_status), int(0+x*0.03), int(0+y*0.9))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, "Finger:", int(0+x*0.63), int(0+y*0.5))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, "Gesture:", int(0+x*0.63), int(0+y*0.7))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, "Dice:", int(0+x*0.63), int(0+y*0.9))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_count), int(0+x*0.80), int(0+y*0.5))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_class), int(0+x*0.80), int(0+y*0.7))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.dice_thread.current_eye_count), int(0+x*0.80), int(0+y*0.9))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, "Finger:", int(0+x*0.73), int(0+y*0.9))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, "Gesture:", int(0+x*0.58), int(0+y*0.5))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, "Dice:", int(0+x*0.73), int(0+y*0.7))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_count), int(0+x*0.88), int(0+y*0.9))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_class), int(0+x*0.75), int(0+y*0.5))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.dice_thread.current_eye_count), int(0+x*0.83), int(0+y*0.7))
         
     def update_instruction(self):
         self.instruction_frame = np.full((self.instruction_frame_shape[1], self.instruction_frame_shape[0], 3), 255, np.uint8)
         x,y = self.instruction_frame_shape
         
-        self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.3), y), (int(0+x*0.7), int(y-y*0.2)), (0,0,0), 2)
-        if self.game_thread.turn_status.value.get("continue") == True:
-            cv2.putText(self.instruction_frame, "Fortfahren:" ,(int(0+x*0.32), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
-        if self.game_thread.turn_status.value.get("back") == True:
-            cv2.putText(self.instruction_frame, "Zurueck:" ,(int(0+x*0.6), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
+        self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.85), y), (x, int(y-y*0.2)), (0,0,0), 2)
+        # if self.game_thread.turn_status.value.get("continue") == True:
+        #     cv2.putText(self.instruction_frame, "Fortfahren:" ,(int(0+x*0.32), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
+        # if self.game_thread.turn_status.value.get("back") == True:
+        #     cv2.putText(self.instruction_frame, "Zurueck:" ,(int(0+x*0.6), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
         if self.game_thread.turn_status.value.get("quit") == True:
-            cv2.putText(self.instruction_frame, "Spiel beenden:" ,(int(0+x*0.45), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
+            cv2.putText(self.instruction_frame, "Spiel beenden:" ,(int(0+x*0.86), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*1, (0, 0, 0), round(self.font_scale_default*1))
             
 
         text = self.get_correct_instruction()
@@ -109,7 +111,7 @@ class Ui(threading.Thread):
         text_x = int((self.instruction_frame.shape[1] - text_size[0]) / 2)
         text_y = int((self.instruction_frame.shape[0] + text_size[1]) / 2)
 
-        cv2.putText(self.instruction_frame, text ,(text_x,text_y), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
+        cv2.putText(self.instruction_frame, text ,(text_x,text_y), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*2, (0, 0, 0), round(self.font_scale_default*2))
         
         if str(self.game_thread.round_status.name) == "PLAYER_GREEN":
             color = (35,168,5)
@@ -124,7 +126,7 @@ class Ui(threading.Thread):
 
         self.instruction_frame = cv2.rectangle(self.instruction_frame, (0, 0), (x, int(0+y*0.25)), color, -1)    
         self.instruction_frame = cv2.rectangle(self.instruction_frame, (0, 0), (x, y), color, 5) 
-        self.instruction_frame = cv2.putText(self.instruction_frame, "Game HUB" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, 1.2, (255, 255, 255), 1)
+        self.instruction_frame = cv2.putText(self.instruction_frame, "Game HUB" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, self.font_scale_default*1.2, (255, 255, 255), round(self.font_scale_default*1))
 
     def figure_ids_to_string(self, figure_array):
         current_figure_id_array = []
@@ -173,13 +175,13 @@ class Ui(threading.Thread):
             text_y = int(0+y*0.038)
             frame = cv2.rectangle(frame, (0, int(y-y*0.025)), (int(0+x*0.65), y), (0,0,0), 2)
             frame = cv2.rectangle(frame, (0, int(y-y*0.025)), (int(0+x*0.65), y), (255,255,255), -1)
-            frame = cv2.putText(frame, "Ein Projekt von Jan Schurkemeyer, Mohamed El Bahar, Dominik Ruth, Simon Schruender und Jan Niklas Ewert", (int(0+x*0.005), int(y-y*0.008)), cv2.FONT_HERSHEY_PLAIN, 0.8, (0,0,0),1)
+            frame = cv2.putText(frame, "Ein Projekt von Jan Schurkemeyer, Mohamed El Bahar, Dominik Ruth, Simon Schruender und Jan Niklas Ewert", (int(0+x*0.005), int(y-y*0.008)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*0.8, (0,0,0),round(self.font_scale_default*1))
         else:
             top_bar_width = int(0+y*0.1)
             text_y = int(0+y*0.07)
         frame = cv2.rectangle(frame, (int(0+x*0.3), 0), (int(0+x*0.7), top_bar_width), (0,0,0), -1)    
         frame = cv2.rectangle(frame, (0, 0), (x, y), (0,0,0), 3) 
-        frame = cv2.putText(frame, text ,(int(0+x*0.35),text_y), cv2.FONT_HERSHEY_TRIPLEX, 1, (255, 255, 255), 1)
+        frame = cv2.putText(frame, text ,(int(0+x*0.35),text_y), cv2.FONT_HERSHEY_TRIPLEX, self.font_scale_default*1, (255, 255, 255), round(self.font_scale_default*1))
         return frame
     
     def highlighting(self):
@@ -226,8 +228,8 @@ class Ui(threading.Thread):
             cv2.circle(frame, (int(coordinates[0]), int(coordinates[1])), radius, highlighting_color, 20)
 
             text_font = cv2.FONT_HERSHEY_DUPLEX
-            text_scale = 1.5
-            text_thickness = 10
+            text_scale = self.font_scale_default*1.5
+            text_thickness = round(self.font_scale_default*10)
             text = str(idx+1)
 
             text_size, _ = cv2.getTextSize(text, text_font, text_scale, text_thickness)

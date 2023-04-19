@@ -20,6 +20,7 @@ class Fps():
         name = name[:4]
 
         y,x,c = frame.shape
+        font_scale = x/1920
         if corner == 1:
             pos_x = int(0+(x*0.005))
             pos_y = int(0+(y*0.06))
@@ -57,6 +58,6 @@ class Fps():
         fps = str(fps)
         if self.debug:
             frame = cv2.rectangle(frame, rec_start, rec_end, (255,255,255),-1)
-            frame = cv2.putText(frame, fps, (pos_x, pos_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-            frame = cv2.putText(frame, name + ":", (pos_x, text_pos_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+            frame = cv2.putText(frame, fps, (pos_x, pos_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale*1, (0, 0, 255), 2, cv2.LINE_AA)
+            frame = cv2.putText(frame, name + ":", (pos_x, text_pos_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale*1, (0, 0, 255), 2, cv2.LINE_AA)
         return frame
