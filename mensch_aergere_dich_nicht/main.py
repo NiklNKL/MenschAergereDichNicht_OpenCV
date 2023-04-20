@@ -21,9 +21,9 @@ def main():
     prev_frame_time = 0
 
     # Camera_ids for all cameras
-    dice_camera_id = 4
+    dice_camera_id = 3
     hand_camera_id = 4
-    board_camera_id = 4
+    board_camera_id = 1
 
     print("\nStarting threads...")
 
@@ -71,7 +71,7 @@ def main():
     dice_thread.name = "DiceReaderThread"
     hand_thread = HandReader(cap=hand_cap, time_threshold = 1)
     hand_thread.name = "HandReaderThread"
-    board_thread = BoardReader(cap=board_cap, use_img=True)
+    board_thread = BoardReader(cap=board_cap, use_img=False)
     board_thread.name = "BoardReaderThread"
 
     # Game object assigned to variable
@@ -86,7 +86,7 @@ def main():
                    dice_cap = dice_cap,
                    hand_cap = hand_cap,
                    board_cap = board_cap,
-                   use_img = True)
+                   use_img = False)
     ui_thread.name = "UiThread"
 
     # Initializing all image detection threads
@@ -178,24 +178,24 @@ def main():
                 dice_cap.stop()
                 hand_cap.stop()
                 board_cap.stop()
+
             print("\n### Process quit!\n\n#################################\n")
-
             print("Process ran for: " + str(time.strftime("%Hh %Mm %Ss", time.gmtime((time.time()-start_time)))) + "\n")
-
+            
             break
     
     # Prints all collected statistics
-    print(f"###### Statistics ######\n")
-    print(f"Camera Resolution: {cap_res}\n\n")
-    print(f"{main_stats}\n")
-    print(f"{ui_stats}\n")
-    print(f"{dice_stats}\n")
-    print(f"{hand_stats}\n")
-    print(f"{cap_stats}\n")
-    print(f"{dice_cap_stats}\n")
-    print(f"{hand_cap_stats}\n")
-    print(f"{board_cap_stats}\n")
-    print(f"#########################\n")
+    print(f"###### Statistics ##########\n")
+    print(f"Camera Resolution: {cap_res}\n")
+    print(f"{main_stats}")
+    print(f"{ui_stats}")
+    print(f"{dice_stats}")
+    print(f"{hand_stats}")
+    print(f"{cap_stats}")
+    print(f"{dice_cap_stats}")
+    print(f"{hand_cap_stats}")
+    print(f"{board_cap_stats}")
+    print(f"\n#########################\n")
 
 # Runs main method
 if __name__ == "__main__":
