@@ -96,7 +96,7 @@ class Ui(threading.Thread):
         self.terminal_frame = self.terminal_text(self.terminal_frame, "Gesture:", int(0+x*0.54), int(0+y*0.5))
         self.terminal_frame = self.terminal_text(self.terminal_frame, "Dice:", int(0+x*0.8), int(0+y*0.7))
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_count), int(0+x*0.95), int(0+y*0.9))
-        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_class), int(0+x*0.71), int(0+y*0.5))
+        self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_gesture), int(0+x*0.71), int(0+y*0.5))
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.dice_thread.current_eye_count), int(0+x*0.9), int(0+y*0.7))
         
     def update_instruction(self):

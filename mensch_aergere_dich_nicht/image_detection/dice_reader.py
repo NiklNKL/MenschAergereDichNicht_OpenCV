@@ -25,7 +25,7 @@ class DiceReader(threading.Thread):
         cv2.SimpleBlobDetector params, update function etc.
 
         Args:
-            cap: takes in a VideoStream object to read frames from
+            cap:            takes in a VideoStream object to read frames from
             time_threshold: sets time a count needs to stay the same for it to update
         '''
 
@@ -61,8 +61,8 @@ class DiceReader(threading.Thread):
         # Variables used for eye_count update
         self.current_eye_count = 0
         self.previous_eye_count = 0
-        self.time_without_change = 0
-        self.last_update_time = time()
+        self.eye_count_time_without_change = 0
+        self.eye_count_last_update_time = time()
 
         # Variables needed for performance testing
         self.prev_frame_time = 0
@@ -90,22 +90,23 @@ class DiceReader(threading.Thread):
         Only updates the current eye count if count stayed
         the same for the time set in time_threshold.
         Resets time without change after change.
+
+        Args:
+            eye_count: takes the latest eye_count
         '''
 
         # Checks if the eye count stayed the same or not
         if eye_count != self.previous_eye_count:    # If the eye_count changed, it saves the new count 
             self.previous_eye_count = eye_count     # as the new previous one and resets the timer
-            self.time_without_change = 0
-            # if eye_count == 0:
-            #     self.current_eye_count = eye_count
+            self.eye_count_time_without_change = 0
         else:
             # If nothing changed the time keeps getting increased
-            self.time_without_change += time() - self.last_update_time
+            self.eye_count_time_without_change += time() - self.eye_count_last_update_time
 
-        self.last_update_time = time()
+        self.eye_count_last_update_time = time()
 
         # If the time_threshold is reached, current_eye_count gets updated
-        if self.time_without_change >= self.time_threshold:
+        if self.eye_count_time_without_change >= self.time_threshold:
             self.current_eye_count =  eye_count
             
     def stop(self):
@@ -113,7 +114,7 @@ class DiceReader(threading.Thread):
         self._stop_event.set()
 
     def stopped(self):
-        # Returns if the thread is still alive or not
+        # Returns status of thread
         return self._stop_event.is_set()
     
     def run(self):

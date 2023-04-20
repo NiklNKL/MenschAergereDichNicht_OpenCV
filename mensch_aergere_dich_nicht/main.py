@@ -51,9 +51,9 @@ def main():
     print(f"\nWe got all the frames! It took: {(time.time()-new_time):.3f} seconds.\n")
     new_time = time.time()
 
-    dice_thread = DiceReader(cap=dice_cap, time_threshold = 1.4)
+    dice_thread = DiceReader(cap=dice_cap, time_threshold = 1)
     dice_thread.name = "DiceReaderThread"
-    hand_thread = HandReader(time_threshold = 1.4, cap=hand_cap)
+    hand_thread = HandReader(cap=hand_cap, time_threshold = 1)
     hand_thread.name = "HandReaderThread"
     board_thread = BoardReader(cap=board_cap, use_img=True)
     board_thread.name = "BoardReaderThread"

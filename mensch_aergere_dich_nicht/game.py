@@ -95,7 +95,7 @@ class Game(threading.Thread):
 
 		while True and not self.stopped():
 			time.sleep(0.1)
-			current_gesture = self.hand_thread.current_class
+			current_gesture = self.hand_thread.current_gesture
 						
 			if current_gesture == "thumbs up":
 				self.game_status = GameStatus.QUIT
@@ -106,12 +106,12 @@ class Game(threading.Thread):
 
 	def wait_for_gesture(self, goal_gesture, second_goal_gesture = None):
 		self.hand_thread.video_feed = "gesture"
-		last_gesture = self.hand_thread.current_class
+		last_gesture = self.hand_thread.current_gesture
 
 		while True and not self.stopped():
 			time.sleep(0.1)
 
-			current_gesture = self.hand_thread.current_class
+			current_gesture = self.hand_thread.current_gesture
 			if current_gesture == "peace":
 				quit = self.gesture_should_game_quit()
 				if quit:
