@@ -209,23 +209,45 @@ class Game(threading.Thread):
 			self.turn_status = TurnStatus.KICK
 
 	def normalize_position(self, p_player_id: int, p_position: int):
-		"""
-		normalized = index of field from the perspective of the player 0
+		"""Method to convert relative position to absolute
 
-		player = 0; pos = 40
-		normalized --> 0
+		This method takes a player id and the position of the player
+		an normalises it for other methods such as kick.
 
-		player = 1; pos = 0
-		normalized --> 10
+		Args:
+			p_player_id:	Id of player
+			p_position:		Index of field
+
+		Returns:
+			Normalised index
+
+		Example:	
+			normalized = index of field from the perspective of the player 0
+
+			player = 0; pos = 40
+			normalized --> 0
+
+			player = 1; pos = 0
+			normalized --> 10
 		"""
+		# Used to catch bad inputs
 		if p_position is None:
 			raise IndexError
 		if p_position > 39:
 			raise IndexError
 
+		# Modulo 40 is the number of fields on the board
 		return (p_position + p_player_id * 10) % 40
 
 	def get_status_by_player_id(self, player_id):
+		""" Changes RoundStatus to current player
+
+		Args:
+			player_id:	Id of current player
+
+		Returns:
+			Fitting RoundStatus for player_id
+		"""
 		if player_id == 0:
 			return RoundStatus.PLAYER_GREEN
 		elif player_id == 1:
@@ -238,62 +260,99 @@ class Game(threading.Thread):
 			return None
 
 	def stop(self):
+		"""Method for stopping the thread."""
 		self._stop_event.set()
 
 	def stopped(self):
+		"""Returns the status of thread."""
 		return self._stop_event.is_set()
 	
 	def run(self):
+		"""Gets called when game_thread is started and contains complete gamelogic
 
+		This method gets called when game_thread.start() is called in the MainThread.
+		It first creates the boardgame with the help of board_thread and saves the 
+		corners of the board. It contains a while-loop where every loop is a full 
+		game cicle for one player. It also updates the Game- Turn- and RoundStatus
+		accordingly. It breaks when the GameStatus changes to quit or when the 
+		thread is stopped.
+		"""
+
+		# Prepares the boardgame
 		self.create_boardgame()
 
+		# Saves corners for Ui board_frame transformations
 		self.corners = self.board_thread.corners
 		
+		# Sets initialized flag to true updates GameStatus
 		self.initialized = True
 		self.game_status = GameStatus.START
 
+		# Contains a loop which waits for the given gesture
 		self.wait_for_gesture("thumbs up")
 
+		# While-loop with cicle for one player
 		while not self.stopped() and not self.game_status == GameStatus.QUIT:
+
 			self.game_status = GameStatus.RUNNING			
 			
 			player = self.players[self.current_player]
 			print(f"It's {player.color}'s turn!")
 
+			# Updates GameStatus to the right team
 			self.round_status = self.get_status_by_player_id(player.id)
 
 			## if no figures are on the street and possible endfield figures are at the end
 			if not player.has_movable_figures() and not self.game_status == GameStatus.QUIT:
+
+				# Player has 3 tries to roll a 6
 				for tries in range(4):
+					
+					# Prevents loop of thread when game ends here
 					if self.stopped() or self.game_status == GameStatus.QUIT:
 						break
+
+					# Updates global tries variable for the ui
 					self.current_try = tries
 					self.turn_status = TurnStatus.ROLL_DICE_HOME
+
+					# Skips if player used all tries
 					if tries == 3:
 						self.turn_status = TurnStatus.SELECT_FIGURE_SKIP
 						self.wait_for_gesture("thumbs up")
 						break
-
+					
+					# Waits for gesture and saves current_eye_count when the loop breaks
 					self.wait_for_gesture("thumbs up")
 					eye_count = self.dice_thread.current_eye_count
 					self.current_turn_eye_count = eye_count
 					
+					# Enters the players turn if a 6 is rolled
 					if eye_count == 6 and not self.game_status == GameStatus.QUIT:
 						self.current_turn(eye_count)
 						break
 			
+			# Gets entered if player has 1 or more figures outside the house 
 			while player.has_movable_figures() and not self.stopped() and not self.game_status == GameStatus.QUIT:
+
+				# Waits for gesture and saves current_eye_count when the loop breaks
 				self.turn_status = TurnStatus.ROLL_DICE
 				self.wait_for_gesture("thumbs up")
 				eye_count = self.dice_thread.current_eye_count
 				self.current_turn_eye_count = eye_count
 				
+				# Enters turn logic
 				self.current_turn(eye_count)
+
+				# Lets the player roll again if he rolled a 6
 				if eye_count != 6:
 					break
-			 
+
+			# Updates the loop to the next player, if current player didn't finish 
 			if not player.all_figures_finished():
 				self.current_player = (self.current_player + 1) %4
+			
+			# Game finished and can be quit
 			else:
 				self.game_status = GameStatus.FINISHED
 				self.wait_for_gesture("rock")
@@ -301,6 +360,7 @@ class Game(threading.Thread):
 				self.wait_for_gesture("thumbs up")
 				self.game_status = GameStatus.QUIT
 
+			# Loop breaks if game_thread is stopped
 			if self.stopped():
 				break
 
