@@ -110,11 +110,11 @@ class DiceReader(threading.Thread):
             self.current_eye_count =  eye_count
             
     def stop(self):
-        # Needed to stop the thread
+        '''Method for stopping the thread.'''
         self._stop_event.set()
 
     def stopped(self):
-        # Returns status of thread
+        '''Returns the status of thread.'''
         return self._stop_event.is_set()
     
     def run(self):
