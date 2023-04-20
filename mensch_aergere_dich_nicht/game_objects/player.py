@@ -1,8 +1,19 @@
-#from mensch_aergere_dich_nicht import Game
 from .field import Field
 
 class Player():
+	'''Representing a player (team) ingame.
+
+	Objects created from this class represent a player (team)
+	which has figures, fields and a color etc.	
+	'''
 	def __init__(self, color:str, id:int, start_field:int):
+		'''Initializes the Player
+
+		Args:
+			color:			string that describes the player's (team's) color
+			id:				id of the player (0-3)
+			start_field:	int, relative to the defined start field
+		'''
 		self.color = color
 		self.id = id # 0-3
 		self.figures = []
@@ -12,20 +23,27 @@ class Player():
 		self.home_fields = None
 
 	def set_homefield(self, homefield):
+		'''Sets the home_fields based on the list provided.'''
 		self.home_fields = [Field(img_pos=(x[1],x[2],x[3]), figure=self.figures[id],street_index=None) for id, x in enumerate(homefield)]
 
 	def set_endfield(self, endfield):
+		'''Sets the end_fields based on the list provided.'''
 		self.end_fields = [Field(img_pos=(x[1],x[2],x[3]), figure=None,street_index=None) for x in endfield]
 
-	# Checks whether there are movable figures on the field
 	def has_movable_figures(self):
-		# checke wie viele figuren im start sind
+		'''Checks whether there are movable figures on the field.
+		
+		If the figures are either located on finish and/or on the
+		home fields then there is no other move possible thatn  
+		rolling a 6.
+		'''
+		# Check how many figures are located on the home fields
 		num_players_start = 0
 		for f in self.figures:
 			if f.is_start() == True:
 				num_players_start + 1
 
-		# Prüfe ob position einer figur kleiner als (43-anzahl Figuren auf dem Feld) ist
+		# Check if position of a figure is smaller than 43-count of figures on field
 		for f in self.figures:
 			if f.get_position() != None:
 				if f.is_start() == False & (int(f.get_position()) <= (43-(4-num_players_start))):
@@ -33,14 +51,23 @@ class Player():
 
 		return False
 	
-	# Checks whether there are/ is a figure(s) on their start field
 	def has_start_figures(self):
+		'''Returns whether there is at least one figure located on its home field'''
 		for f in self.figures:
 			if f.is_start():
 				return True
 		return False
 	
 	def available_figures(self, p_eye_count):
+		'''Based on the rolled count, the figures that are available for moving are calculated.
+		
+		Args:
+			p_eye_count: 			int, rolled eye count between 1-6
+
+		Returns:
+			available_figures:		array of tuples with figures and their new position
+		'''
+
 		available_figures = []
 
 		# Checks wheather there are figures on their starting position and a figure is located on field 0
@@ -90,41 +117,33 @@ class Player():
 						if finish_free:
 							print("Figure " + str(f.id) + " (" + str(f.get_position()) + ") available")
 							available_figures.append([f, new_position])
-			
-			# #highlighting of all available moves
-			# if len(available_figures) > 0:
-			# 	last_figure = available_figures[-1]
-			# 	position = last_figure[1]
-			# 	print(position)
-			# 	try:
-			# 		abs_pos = super().normalize_position(f.player.id, position)
-			# 		coordinates = self.GameHandler.fields[abs_pos].img_pos
-			# 	except IndexError:
-			# 		## remove logic for endfield
-			# 		endfieldPos = position % 40
-			# 		coordinates = f.player.end_fields[endfieldPos].img_pos
-
-			# 	print(coordinates)
-			# 	UiHandler.highlighting(coordinates, self.figures.index, self.color)
 		
 		return available_figures
 	
-	# Checks whether there is a figure on a specific position
 	def is_figure_on_position(self, p_position):
+		'''Returns whether there is a figure on a specific position
+		
+		Args:
+			p_position:		field position to check for figure on
+		'''
 		for f in self.figures:
 			if f.get_position() == p_position:
 				return True
 		return False
 	
-	# Returns the figure on the desired position
 	def get_figure_on_position(self, p_position):
+		'''Returns the figure on the desired position. None if no figure on position.
+		
+		Args:
+			p_position:		field position to get the figure from
+		'''
 		for f in self.figures:
 			if f.get_position() == p_position:
 				return f
 		return None
 	
-	# Checks whether all figures are located on a finish field
 	def all_figures_finished(self):
+		'''Returns whether all figures are located on a finish field'''
 		for f in self.figures:
 			if f.is_finish() == False:
 				return False
@@ -132,4 +151,8 @@ class Player():
 		return True
 
 	def __str__(self) -> str:
+		'''Returns a string of the object.
+		
+		Override of the __str__() function.
+		'''
 		return f"{self.color}"

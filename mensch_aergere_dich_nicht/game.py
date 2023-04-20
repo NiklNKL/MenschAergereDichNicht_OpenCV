@@ -19,6 +19,7 @@ class Game(threading.Thread):
 		self.selected_figure = 0
 		self.current_turn_eye_count = 0
 		self.current_turn_available_figures = []
+		self.current_try = 0
 
 		self.dice_thread = dice_thread
 		self.hand_thread = hand_thread
@@ -51,7 +52,7 @@ class Game(threading.Thread):
 			
 			## create Figure objects for each player (id range [1,4])
 			for figure_num in range(4):
-				figure = Figure(relPos = None,
+				figure = Figure(rel_pos = None,
 								player = self.players[-1],
 								id = figure_num)
 				self.figures.append(figure)
@@ -59,12 +60,12 @@ class Game(threading.Thread):
 			start_field += 10
 		
 		## move green's figure 1 to absPos 36 to test end_fields
-		#self.GameHandler.fields[36].figure = self.GameHandler.players[0].figures[0]
-		#self.GameHandler.players[0].figures[0].set_position(36, self.GameHandler.fields[36].img_pos, self.GameHandler.players[0].color, 1, UiHandler)
+		#self.fields[36].figure = self.players[0].figures[0]
+		#self.players[0].figures[0].set_position(36)
 
 		## move yellow's figure 1 to absPos 6 to test kick logic
-		#self.GameHandler.players[-1].figures[0].set_position(16)
-		#self.GameHandler.fields[6].figure = self.GameHandler.players[-1].figures[0]
+		# self.players[-1].figures[0].set_position(16)
+		# self.fields[6].figure = self.players[-1].figures[0]
 
 		## iterate through all players with their respective start_field index
 		for index, player in enumerate(self.players):
@@ -85,25 +86,47 @@ class Game(threading.Thread):
 		# for player in self.players:
 		# 	print({"color": player.color, "start_field": player.start_field, "finish_field": player.finish_field})
 		# for figure in self.figures:
-		# 	print({"relPos": figure.relPos, "team": figure.player, "item": figure.id})
+		# 	print({"rel_pos": figure.rel_pos, "team": figure.player, "item": figure.id})
 		# print("finished preparations")
 
-	def wait_for_gesture(self, goal_gesture, second_goal_gesture = None):
+	def gesture_should_game_quit(self):
 		self.hand_thread.video_feed = "gesture"
-		last_gesture = self.hand_thread.current_class
+		self.game_status = GameStatus.SHOULD_QUIT
 
 		while True and not self.stopped():
 			time.sleep(0.1)
-			current_gesture = self.hand_thread.current_class
+			current_gesture = self.hand_thread.current_gesture
+						
+			if current_gesture == "thumbs up":
+				self.game_status = GameStatus.QUIT
+				return True
+			elif current_gesture == "thumbs down":
+				self.game_status = GameStatus.RUNNING
+				return False
+
+	def wait_for_gesture(self, goal_gesture, second_goal_gesture = None):
+		self.hand_thread.video_feed = "gesture"
+		last_gesture = self.hand_thread.current_gesture
+
+		while True and not self.stopped():
+			time.sleep(0.1)
+
+			current_gesture = self.hand_thread.current_gesture
+			if (current_gesture == "rock" and last_gesture == "peace") \
+				or (current_gesture == "peace" and last_gesture == "rock"):
+				quit = self.gesture_should_game_quit()
+				if quit:
+					return False
+
 			if current_gesture != last_gesture and current_gesture == goal_gesture:
 				return True
-			else:
-					last_gesture = current_gesture
-			if second_goal_gesture is not None: 
+			elif second_goal_gesture is not None: 
 				if current_gesture != last_gesture and current_gesture == second_goal_gesture:
-					return False
+					return False	
 				else:
 					last_gesture = current_gesture
+			else:
+				last_gesture = current_gesture
 
 	def wait_for_count(self, possible_figure_ids):
 		self.hand_thread.video_feed = "counter"
@@ -111,6 +134,7 @@ class Game(threading.Thread):
 		showed_ten = False
 		while True and not self.stopped():
 			time.sleep(0.1)
+
 			if last_count == 10:
 				showed_ten =True
 			if showed_ten and self.hand_thread.current_count-1 in possible_figure_ids:
@@ -129,30 +153,32 @@ class Game(threading.Thread):
 
 		if len(available_figures) > 0:
 			figure_accepted = False
-			while not figure_accepted and not self.stopped():
+			while not figure_accepted and not self.stopped() and not self.game_status == GameStatus.QUIT:
 				self.turn_status = TurnStatus.SELECT_FIGURE
 				## Wenn Zug möglich, wähle einen aus
 				chosen_figure = self.choose_figure(available_figures)
 				self.turn_status = TurnStatus.SELECT_FIGURE_ACCEPT
 				figure_accepted = self.wait_for_gesture("thumbs up", "thumbs down")
 
-			self.turn_status = TurnStatus.MOVE_FIGURE
-			self.wait_for_gesture("thumbs up")
+			# self.turn_status = TurnStatus.MOVE_FIGURE
+			# self.wait_for_gesture("thumbs up")
 			## führe Zug aus
-			self.move(player, chosen_figure, eye_count)
+			if not self.stopped() and not self.game_status == GameStatus.QUIT:
+				self.move(player, chosen_figure, eye_count)
+
 		else:
 			self.turn_status = TurnStatus.SELECT_FIGURE_SKIP
 			self.wait_for_gesture("thumbs up")
 
 	def move(self, p_current_player, p_chosen_figure, p_eye_count):
-		if p_chosen_figure.relPos is not None:
+		if p_chosen_figure.rel_pos is not None:
 			## remove figure from old field
 			try:
-				old_absPos = self.normalize_position(p_player_id=p_current_player.id, p_position=p_chosen_figure.relPos)
+				old_absPos = self.normalize_position(p_player_id=p_current_player.id, p_position=p_chosen_figure.rel_pos)
 				self.fields[old_absPos].figure = None
 			except IndexError:
 				## remove logic for endfield
-				endfieldPos = p_chosen_figure.relPos % 40
+				endfieldPos = p_chosen_figure.rel_pos % 40
 				p_current_player.end_fields[endfieldPos].figure = p_chosen_figure
 	
 		##new relative pos
@@ -174,9 +200,9 @@ class Game(threading.Thread):
 			field = p_current_player.end_fields[endfieldPos]
 		field.figure = p_chosen_figure
 
-		## set figure.relPos
+		## set figure.rel_pos
 		print(f"Moved {p_chosen_figure.id} to {newPos}")
-		p_chosen_figure.set_position(newPos, field.img_pos, p_current_player.color, p_chosen_figure.id)
+		p_chosen_figure.set_position(newPos)
 
 	def choose_figure(self, available_figures):
 		current_figure_ids = []
@@ -197,11 +223,10 @@ class Game(threading.Thread):
 		# Wir zeigen 2 an
 		# Wir haben auch nur 2 zur Auswahl, heißt die ist in available_figures index 0
 
-
 	def calculate_new_pos(self, p_chosen_figure, p_eye_count):
 		newPos = 0
-		if  p_chosen_figure.relPos is not None:
-			newPos = p_chosen_figure.relPos + p_eye_count
+		if  p_chosen_figure.rel_pos is not None:
+			newPos = p_chosen_figure.rel_pos + p_eye_count
 		return newPos
 	
 	def kick(self, absPos):
@@ -211,7 +236,7 @@ class Game(threading.Thread):
 		field = self.fields[absPos]
 	
 		if field.figure is not None:
-			field.figure.set_position(None, field.img_pos, field.figure.player.color, field.figure.id)
+			field.figure.set_position(None)
 			self.turn_status = TurnStatus.KICK
 
 	def normalize_position(self, p_player_id: int, p_position: int):
@@ -258,26 +283,26 @@ class Game(threading.Thread):
 
 		self.wait_for_gesture("thumbs up")
 
-		self.game_status = GameStatus.RUNNING
-
-		while True and not self.stopped():
+		while not self.stopped() and not self.game_status == GameStatus.QUIT:
+			self.game_status = GameStatus.RUNNING			
 			
 			player = self.players[self.current_player]
 			print(f"It's {player.color}'s turn!")
 
 			self.round_status = self.get_status_by_player_id(player.id)
 
-			self.turn_status = TurnStatus.PLAYER_READY
-			self.wait_for_gesture("thumbs up")
-
-			
+			# self.turn_status = TurnStatus.PLAYER_READY
+			# self.wait_for_gesture("thumbs up")
 
 			## if no figures are on the street and possible endfield figures are at the end
-			if not player.has_movable_figures():
-				for turn in range(4):
-					self.turn_status = TurnStatus.ROLL_DICE
-					if turn == 3:
-						self.turn_status.SELECT_FIGURE_SKIP
+			if not player.has_movable_figures() and not self.game_status == GameStatus.QUIT:
+				for tries in range(4):
+					if self.stopped() or self.game_status == GameStatus.QUIT:
+						break
+					self.current_try = tries
+					self.turn_status = TurnStatus.ROLL_DICE_HOME
+					if tries == 3:
+						self.turn_status = TurnStatus.SELECT_FIGURE_SKIP
 						self.wait_for_gesture("thumbs up")
 						break
 
@@ -285,11 +310,11 @@ class Game(threading.Thread):
 					eye_count = self.dice_thread.current_eye_count
 					self.current_turn_eye_count = eye_count
 					
-					if eye_count == 6:
+					if eye_count == 6 and not self.game_status == GameStatus.QUIT:
 						self.current_turn(eye_count)
 						break
 			
-			while player.has_movable_figures() and not self.stopped():
+			while player.has_movable_figures() and not self.stopped() and not self.game_status == GameStatus.QUIT:
 				self.turn_status = TurnStatus.ROLL_DICE
 				self.wait_for_gesture("thumbs up")
 				eye_count = self.dice_thread.current_eye_count
@@ -303,7 +328,7 @@ class Game(threading.Thread):
 				self.current_player = (self.current_player + 1) %4
 			else:
 				self.game_status = GameStatus.FINISHED
-				self.wait_for_gesture("peace")
+				self.wait_for_gesture("rock")
 				self.game_status = GameStatus.SHOULD_QUIT
 				self.wait_for_gesture("thumbs up")
 				self.game_status = GameStatus.QUIT
