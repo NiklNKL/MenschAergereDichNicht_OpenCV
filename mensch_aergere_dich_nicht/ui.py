@@ -224,6 +224,19 @@ class Ui(threading.Thread):
     
     def draw_highlighting(self, frame, coordinates, radius, highlighting_color, idx):
         
+        '''Gets called by the highlighting() method and draws a circle with text inside.
+                
+                This method is used to draw the highlighting for figures and moves with the corresponding
+                figure id inside the circle. It uses the circle() and putText() method from the opencv package.
+                
+                Args:
+                    frame: takes the mask/a frame for drawing
+                    coordinates: the x and y coordinates of the middle of the field
+                    radius: radius of the field
+                    highlighting_color: the color which should be used for the circle
+                    idx: the id of the figure
+                '''
+        
         #draw circle
         cv2.circle(frame, (int(coordinates[0]), int(coordinates[1])), radius, highlighting_color, round(self.font_scale_default*10))
 
@@ -241,8 +254,21 @@ class Ui(threading.Thread):
 
     def highlighting(self):
         
+        '''This method is used to highlight figures and moves in the UI Board Video-Stream
+
+        The method accesses the game_thread provided in the UI-Class to get all the necessary parameters.
+        It iterates through all the figures on the board, gets their relative position with the field where
+        the figure is standing and converts this into an absolut position with a x and y coordinate as well as the radius.
+        It then uses these coordinates to draw a circle around the field with a figure and adds the corresponding
+        figure id as text inside of the circle. 
+        It also uses the current_turn_available_figures to get the figures with new positions for move highlighting.
+        Move highlighting is only done when a specific turn_status is set.
+        '''
+
         #create a mask for highlighting
         frame = np.zeros_like(self.board_image, dtype=np.uint8)
+
+        ## figure highlighting
 
         #iterate through figures
         for i, figure in enumerate(self.game_thread.figures):
