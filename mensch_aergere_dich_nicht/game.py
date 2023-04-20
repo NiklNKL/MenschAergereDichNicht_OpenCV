@@ -58,14 +58,6 @@ class Game(threading.Thread):
 				self.figures.append(figure)
 				self.players[-1].figures.append(figure)
 			start_field += 10
-		
-		## move green's figure 1 to absPos 36 to test end_fields
-		#self.fields[36].figure = self.players[0].figures[0]
-		#self.players[0].figures[0].set_position(36)
-
-		## move yellow's figure 1 to absPos 6 to test kick logic
-		# self.players[-1].figures[0].set_position(16)
-		# self.fields[6].figure = self.players[-1].figures[0]
 
 		## iterate through all players with their respective start_field index
 		for index, player in enumerate(self.players):
@@ -74,20 +66,6 @@ class Game(threading.Thread):
 
 			player.set_homefield(homefield)
 			player.set_endfield(endfield)
-
-		for figure in self.figures:
-			for count in range(0,4):
-				pass
-				# UiHandler.highlighting(figure.player.home_fields[count].img_pos, figure.id, figure.player.color)
-
-		## check if everything was created correctly
-		# for field in self.fields:
-		# 	print({"img_pos": field.img_pos, "figure": field.figure, "street_index": field.street_index})
-		# for player in self.players:
-		# 	print({"color": player.color, "start_field": player.start_field, "finish_field": player.finish_field})
-		# for figure in self.figures:
-		# 	print({"rel_pos": figure.rel_pos, "team": figure.player, "item": figure.id})
-		# print("finished preparations")
 
 	def gesture_should_game_quit(self):
 		self.hand_thread.video_feed = "gesture"
@@ -160,8 +138,6 @@ class Game(threading.Thread):
 				self.turn_status = TurnStatus.SELECT_FIGURE_ACCEPT
 				figure_accepted = self.wait_for_gesture("thumbs up", "thumbs down")
 
-			# self.turn_status = TurnStatus.MOVE_FIGURE
-			# self.wait_for_gesture("thumbs up")
 			## führe Zug aus
 			if not self.stopped() and not self.game_status == GameStatus.QUIT:
 				self.move(player, chosen_figure, eye_count)
@@ -215,13 +191,6 @@ class Game(threading.Thread):
 		chosen_figure = player.figures[self.hand_thread.current_count-1]
 		self.selected_figure = chosen_figure
 		return chosen_figure
-		# chosen_figure = self.hand_thread.current_count-1
-		
-		# # return chosen figure object
-		# return available_figures[chosen_figure][0]
-
-		# Wir zeigen 2 an
-		# Wir haben auch nur 2 zur Auswahl, heißt die ist in available_figures index 0
 
 	def calculate_new_pos(self, p_chosen_figure, p_eye_count):
 		newPos = 0
@@ -292,9 +261,6 @@ class Game(threading.Thread):
 			print(f"It's {player.color}'s turn!")
 
 			self.round_status = self.get_status_by_player_id(player.id)
-
-			# self.turn_status = TurnStatus.PLAYER_READY
-			# self.wait_for_gesture("thumbs up")
 
 			## if no figures are on the street and possible endfield figures are at the end
 			if not player.has_movable_figures() and not self.game_status == GameStatus.QUIT:
