@@ -172,10 +172,9 @@ class Ui(threading.Thread):
 
         rock_icon, ROI_rock = self.resize_icon(self.rock_image, y, x, 0.96)
         self.instruction_frame[y-rock_icon.shape[0]:y, int(x*0.96)-rock_icon.shape[1]:int(x*0.96)] = ROI_rock
-
-        if self.game_thread.turn_status.value.get("quit") == True:
-            cv2.putText(self.instruction_frame, "Quit game:" ,(int(0+x*0.84), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*1, (0, 0, 0), round(self.font_scale_default*1))
-            self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.83), y), (x, int(y-y*0.2)), (0,0,0), 2)
+        
+        cv2.putText(self.instruction_frame, "Quit game:" ,(int(0+x*0.84), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*1, (0, 0, 0), round(self.font_scale_default*1))
+        self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.83), y), (x, int(y-y*0.2)), (0,0,0), 2)
 
         upper_text = self.get_correct_instruction(upper_text = True)
         lower_text = self.get_correct_instruction(upper_text=False)
