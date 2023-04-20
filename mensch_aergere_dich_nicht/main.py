@@ -21,9 +21,9 @@ def main():
     prev_frame_time = 0
 
     # Camera_ids for all cameras
-    dice_camera_id = 1
-    hand_camera_id = 4
-    board_camera_id = 3
+    dice_camera_id = 0
+    hand_camera_id = 0
+    board_camera_id = 0
 
     print("\nStarting threads...")
 
@@ -71,7 +71,7 @@ def main():
     dice_thread.name = "DiceReaderThread"
     hand_thread = HandReader(cap=hand_cap, time_threshold = 1)
     hand_thread.name = "HandReaderThread"
-    board_thread = BoardReader(cap=board_cap, use_img=False)
+    board_thread = BoardReader(cap=board_cap, use_img=True)
     board_thread.name = "BoardReaderThread"
 
     # Game object assigned to variable
@@ -86,7 +86,7 @@ def main():
                    dice_cap = dice_cap,
                    hand_cap = hand_cap,
                    board_cap = board_cap,
-                   use_img = False)
+                   use_img = True)
     ui_thread.name = "UiThread"
 
     # Initializing all image detection threads
