@@ -5,7 +5,19 @@ from utilities import GameStatus, RoundStatus, TurnStatus
 import time
 
 class Game(threading.Thread):
+	"""
+	A class containing the game logic for Mensch-ärgere-dich-nicht game.
+	"""
+
 	def __init__(self, dice_thread, hand_thread, board_thread) -> None:
+		"""
+		initializes game object lists and local variables
+
+		Args:
+			dice_thread (threading.Thread): Thread object for the dice recognition.
+            hand_thread (threading.Thread): Thread object for the hand recognition.
+            board_thread (threading.Thread): Thread object for the board recognition.
+		"""
 
 		threading.Thread.__init__(self)
 
@@ -36,6 +48,11 @@ class Game(threading.Thread):
 		self.initialized = False
 
 	def create_boardgame(self):
+		"""
+		Create the relevant game objects Field, Player and Figure.
+		First preparation step. 
+		Board Reader has to be excecuted first. 
+		"""
 		## create Field objects (street_index range [0,39])
 		for index, field in enumerate(self.board_thread.street[self.board_thread.index_of_green:] + self.board_thread.street[:self.board_thread.index_of_green]):
 			self.fields.append(Field(img_pos = field[1:4],
@@ -147,6 +164,19 @@ class Game(threading.Thread):
 			self.wait_for_gesture("thumbs up")
 
 	def move(self, p_current_player, p_chosen_figure, p_eye_count):
+		"""
+		Contains logic for legal move of figure.
+		At first figure is removed from the previous field.
+		Then it is moved to the new field. Should another 
+		figure be located on the field it is moved back to home.
+		The move logic works with absolute positions, this is why
+		we need to convert with normalize_position.
+
+		Args:
+			p_current_player (Player): object of current player
+			p_chose_figure (Figure): object of figure that was chosen
+			p_eye_count (int): number of steps which the figure should be moved.
+		"""
 		if p_chosen_figure.rel_pos is not None:
 			## remove figure from old field
 			try:
