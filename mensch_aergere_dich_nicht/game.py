@@ -52,7 +52,7 @@ class Game(threading.Thread):
 			
 			## create Figure objects for each player (id range [1,4])
 			for figure_num in range(4):
-				figure = Figure(relPos = None,
+				figure = Figure(rel_pos = None,
 								player = self.players[-1],
 								id = figure_num)
 				self.figures.append(figure)

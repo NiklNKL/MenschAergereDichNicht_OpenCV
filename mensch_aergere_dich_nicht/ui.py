@@ -3,6 +3,7 @@ import cv2
 import threading
 from time import time
 from utilities import Fps
+import imutils
 
 class Ui(threading.Thread):
     def __init__(self, dice_thread, hand_thread, board_thread, game_thread, dice_cap, hand_cap, board_cap, use_img = False) -> None:
@@ -103,6 +104,21 @@ class Ui(threading.Thread):
         self.instruction_frame = np.full((self.instruction_frame_shape[1], self.instruction_frame_shape[0], 3), 255, np.uint8)
         x,y = self.instruction_frame_shape
         
+        self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.85), y), (x, int(y-y*0.2)), (0,0,0), 2)
+
+        icon_bgra = cv2.imread("mensch_aergere_dich_nicht/resources/images/peace.png", -1)
+        icon_bgra = imutils.resize(icon_bgra, height=int(y*0.2))
+        alpha_channel = icon_bgra[:,:,-1]
+        icon_bgr = icon_bgra[:,:,:-1]
+        ROI = self.instruction_frame[y-icon_bgra.shape[0]:y, int(x*0.99)-icon_bgra.shape[1]:int(x*0.99)]
+        ROI[alpha_channel==255] = icon_bgr[alpha_channel==255]
+        self.instruction_frame[y-icon_bgra.shape[0]:y, int(x*0.99)-icon_bgra.shape[1]:int(x*0.99)] = ROI
+        # peace = cv2.resize(peace, ((x-int(0+x*0.85)),int((y*0.2))))
+        # self.instruction_frame[y-icon.shape[0]:y, x-icon.shape[1]:x, :]=icon
+        # if self.game_thread.turn_status.value.get("continue") == True:
+        #     cv2.putText(self.instruction_frame, "Fortfahren:" ,(int(0+x*0.32), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
+        # if self.game_thread.turn_status.value.get("back") == True:
+        #     cv2.putText(self.instruction_frame, "Zurueck:" ,(int(0+x*0.6), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
         if self.game_thread.turn_status.value.get("quit") == True:
             cv2.putText(self.instruction_frame, "Quit game = Peace" ,(int(0+x*0.84), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*1, (0, 0, 0), round(self.font_scale_default*1))
             self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.83), y), (x, int(y-y*0.2)), (0,0,0), 2)
