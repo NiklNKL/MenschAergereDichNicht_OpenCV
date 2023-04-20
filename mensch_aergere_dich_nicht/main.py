@@ -21,9 +21,9 @@ def main():
     prev_frame_time = 0
 
     # Camera_ids for all cameras
-    dice_camera_id = 3
+    dice_camera_id = 1
     hand_camera_id = 4
-    board_camera_id = 1
+    board_camera_id = 3
 
     print("\nStarting threads...")
 
@@ -103,7 +103,6 @@ def main():
 
     # Initializing game thread
     game_thread.start()
-    game_thread.corners = board_thread.corners
 
     # Waits for game_thread to have one complete run
     while not game_thread.initialized:
