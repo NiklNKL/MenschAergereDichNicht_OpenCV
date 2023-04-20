@@ -6,7 +6,13 @@ import time
 
 class BoardReader(threading.Thread):
     def __init__(self, cap, use_img=False) -> None:
-
+        """
+        Initialises a BoardReader object
+        
+        Args:
+        cap: cv2.VideoCapture object or any other object with a frame attribute
+        use_img: bool, whether to use an image instead of capturing video input
+        """
         threading.Thread.__init__(self)
         # Initialising of the videocapture
         
@@ -17,12 +23,13 @@ class BoardReader(threading.Thread):
         ## for testing purposes a single frame can be used
         self.use_img = use_img
         if self.use_img:
-            self.frame = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/wRedAndGreen.JPG', cv2.IMREAD_COLOR)
+            self.frame = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/reallife_frame.jpg', cv2.IMREAD_COLOR)
         
         self.street = None
         self.index_of_green =  None
         self.home_fields = None
         self.end_fields = None
+        self.corners = None
 
         self.initialized = False
 
@@ -30,13 +37,29 @@ class BoardReader(threading.Thread):
 
     def get_angle(self, a, b, c):
         """
-        source: https://stackoverflow.com/questions/58579072/calculate-the-angle-between-two-lines-2-options-and-efficiency
+        Calculates the angle between two lines (a,b) and (b,c).
+        
+        Args:
+        a: tuple, (x,y) coordinates of point a
+        b: tuple, (x,y) coordinates of point b
+        c: tuple, (x,y) coordinates of point c
+        
+        Returns:
+        ang: float, the angle between the two lines in degrees
         """
         ## calculate angle between three points a, b and c
         ang = math.degrees(math.atan2(c[1]-b[1], c[0]-b[0]) - math.atan2(a[1]-b[1], a[0]-b[0]))
         return ang + 360 if ang < 0 else ang
 
     def get_playground(self):
+        """
+        Detects the playground borders from the frame.
+        
+        Returns:
+        tuple:
+            corners: np.array, an array of 4 tuples of (x,y) coordinates of the corners of the playground
+            center: tuple, (x,y) coordinates of the center of the playground
+        """
         ## preprocessing
         rgb = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
         upper_red = np.array([255, 90, 90])
@@ -73,6 +96,14 @@ class BoardReader(threading.Thread):
         epsilon = 0.01*cv2.arcLength(cnt,True)
         corners = np.squeeze(cv2.approxPolyDP(cnt, epsilon, True), axis=1)
 
+        ## top left field is first value and bottom right field is last value
+        corners = np.array(sorted(corners, key= lambda c: c[0]+c[1]))
+        ## set top right field to index 1 if not already, bottom left to index 2 
+        if corners[1][1]>corners[2][1]:
+            corners[[1,2]]=corners[[2,1]]
+        print(f"setting corners. No. of corners: {len(corners)}")
+        self.corners = corners
+
         if not len(corners) == 4:
             raise Exception("Could not find four corners of playground")
         
@@ -86,6 +117,20 @@ class BoardReader(threading.Thread):
         return (corners, center)
 
     def detect_circles(self, img, corners, center, minR_factor, maxR_factor, fields):
+        """
+        Detects circles in an image.
+
+        Args:
+        img: The input image.
+        corners: The four corners of the board.
+        center: The center of the board.
+        minR_factor: The minimum radius of the circles relative to the distance between the first corner and the center of the board.
+        maxR_factor: The maximum radius of the circles relative to the distance between the first corner and the center of the board.
+        fields: The number of circles to be detected.
+
+        Returns:
+        An array of circles, where each circle is represented by its center coordinates and its radius.
+        """
         detected_circles, maxNum = np.array([]), 0
 
         ## initialize min and max radius with distance relative to the size of the playground
@@ -117,6 +162,17 @@ class BoardReader(threading.Thread):
         return detected_circles
 
     def get_street(self, corners, center):
+        """
+        Detects the playing field in the input image.
+
+        Args:
+        corners: The four corners of the board.
+        center: The center of the board.
+
+        Returns:
+        A sorted list of circles, where each circle is represented by its angle, its center coordinates and its radius.
+        """
+        
         ## preprocessing --> convert to gray for HoughCircles
         blurred = cv2.medianBlur(self.frame, 7)
         gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
@@ -156,6 +212,19 @@ class BoardReader(threading.Thread):
         return sortedStreet
 
     def get_home_and_end(self, corners, center, street, index_of_green):
+        """
+        Detects and returns the home and end fields for each player using HoughCircles and image processing techniques.
+
+        Args:
+        corners: list of corner coordinates (x, y) in the board image
+        center: tuple representing the center point of the board image
+        street: list of fields on the board (x, y, radius) sorted by angle with vector (center->green start)
+        index_of_green: the index of the field that contains the green starting piece
+
+        Returns:
+        home_fields: a list of four lists, each containing 4 tuples representing the fields on each player's home
+        end_fields: a list of four lists, each containing 4 tuples representing the fields on each player's end
+        """
         ## blur
         blurred = cv2.medianBlur(self.frame, 7)
 
@@ -165,9 +234,9 @@ class BoardReader(threading.Thread):
         ## detect "street"
         detected_circles = self.detect_circles(gray, corners, center, 
                                                 minR_factor=0.0333960945049427, 
-                                                maxR_factor=0.03784890710560172, 
+                                                maxR_factor=0.04, 
                                                 fields=32)
-
+        
         ## order by angle with vector (center->green start)
         green = street[index_of_green][1:]
         angles = []
@@ -200,36 +269,40 @@ class BoardReader(threading.Thread):
             home_fields.append(homefield)
             end_fields.append(endfield)
 
-        """
-        end_fields = np.uint16(np.around(end_fields))
-        home_fields = np.uint16(np.around(home_fields))
-        for index, color in enumerate(["G","R","B","Y"]):
-            homefield = home_fields[index]
-            endfield = end_fields[index]
-            for idx, (_, a, b, r) in enumerate(homefield):
-            # a, b, r = pt[1], pt[2], pt[3]
-            # Draw the circumference of the circle.
-                cv2.circle(frame, (a, b), r, (0, 255, 0), 20)
-                # Draw a small circle (of radius 1) to show the center.
-                cv2.putText(frame, f"H_{color}_{idx}", (a, b),
-                    cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
-            for idx, (_, a, b, r) in enumerate(endfield):
-            # a, b, r = pt[1], pt[2], pt[3]
-            # Draw the circumference of the circle.
-                cv2.circle(frame, (a, b), r, (0, 255, 0), 20)
-                # Draw a small circle (of radius 1) to show the center.
-                cv2.putText(frame, f"E_{color}_{idx}", (a, b),
-                    cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
-        cv2.imshow("frame", frame)
-        cv2.waitKey(0)
-        """
+        # end_fields = np.uint16(np.around(end_fields))
+        # home_fields = np.uint16(np.around(home_fields))
+        # for index, color in enumerate(["G","R","B","Y"]):
+        #     homefield = home_fields[index]
+        #     endfield = end_fields[index]
+        #     for idx, (_, a, b, r) in enumerate(homefield):
+        #     # a, b, r = pt[1], pt[2], pt[3]
+        #     # Draw the circumference of the circle.
+        #         cv2.circle(self.frame, (a, b), r, (0, 255, 0), 20)
+        #         # Draw a small circle (of radius 1) to show the center.
+        #         cv2.putText(self.frame, f"H_{color}_{idx}", (a, b),
+        #             cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
+        #     for idx, (_, a, b, r) in enumerate(endfield):
+        #     # a, b, r = pt[1], pt[2], pt[3]
+        #     # Draw the circumference of the circle.
+        #         cv2.circle(self.frame, (a, b), r, (0, 255, 0), 20)
+        #         # Draw a small circle (of radius 1) to show the center.
+        #         cv2.putText(self.frame, f"E_{color}_{idx}", (a, b),
+        #             cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
+        
+        # cv2.waitKey(0)
 
         print(f"Finished non_street detection with {len(sortedStreet)} fields")
         return home_fields, end_fields
 
     def identify_green_startingfield(self, street):
         """
-        source: https://stackoverflow.com/questions/61516526/how-to-use-opencv-to-crop-circular-image
+        Identifies the starting field for the green player on the board by applying image processing techniques.
+
+        Args:
+        street: list of fields on the board (x, y, radius) sorted by angle with vector (center->green start)
+
+        Returns:
+        tuple representing the starting field for the green player (x, y, radius)
         """
         ## preprocessing
         imgHSV = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
@@ -245,7 +318,7 @@ class BoardReader(threading.Thread):
             mask_area = cv2.bitwise_and(blurred_houses, mask)
             
             ## check if pixels in the HSV color range 40-70 (green) are found in masked area
-            if self.check_color_in_mask(mask_area, [(40, 100, 100), (70,255,255)]):
+            if self.check_color_in_mask(mask_area, [(35, 40, 40), (120,255,255)]):
                 """
                 ## show circle containing the green startingfield
                 # cv2.imwrite("exports/masks/mask_area"+str(index)+".png", mask_area)
@@ -269,26 +342,23 @@ class BoardReader(threading.Thread):
         ## check if any pixels in specified range were found
         return np.sum(color_mask) > 0
 
-    # def highlight_moves(UiHandler, BoardgameHandler, avail_moves):
-    #     from mensch_aergere_dich_nicht import Game 
-    #     for figure, field in avail_moves:
-    #         # _, board = cap.read()
-    #         board = UiHandler.boardFrame
-    #         normPos = game_logic.normalize_position(figure.player, figure.relPos)
-
-    #         normCord = BoardgameHandler.fields[normPos].img_pos
-    #         newCord = BoardgameHandler.fields[field].img_pos
-            
-    #         board = cv2.arrowedLine(board, normCord, newCord)
-
     def stop(self):
+        """
+        Sets the event to stop the thread.
+        """
         self._stop_event.set()
 
     def stopped(self):
+        """
+        Returns a boolean indicating whether the thread has stopped.
+        """
         return self._stop_event.is_set()
 
 
     def run(self):
+        """
+        Starts the thread and runs the methods to detect the board and fields.
+        """
         self.temp_frame = self.cap.frame
         ## get playground
         print("\nStarting playground detection...")
