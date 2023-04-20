@@ -269,7 +269,6 @@ class BoardReader(threading.Thread):
             home_fields.append(homefield)
             end_fields.append(endfield)
 
-        
         # end_fields = np.uint16(np.around(end_fields))
         # home_fields = np.uint16(np.around(home_fields))
         # for index, color in enumerate(["G","R","B","Y"]):
@@ -291,7 +290,6 @@ class BoardReader(threading.Thread):
         #             cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
         
         # cv2.waitKey(0)
-        
 
         print(f"Finished non_street detection with {len(sortedStreet)} fields")
         return home_fields, end_fields
