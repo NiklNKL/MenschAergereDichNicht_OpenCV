@@ -150,60 +150,91 @@ class Game(threading.Thread):
 		if p_chosen_figure.rel_pos is not None:
 			## remove figure from old field
 			try:
-				old_absPos = self.normalize_position(p_player_id=p_current_player.id, p_position=p_chosen_figure.rel_pos)
-				self.fields[old_absPos].figure = None
+				old_abs_pos = self.normalize_position(p_player_id=p_current_player.id, p_position=p_chosen_figure.rel_pos)
+				self.fields[old_abs_pos].figure = None
 			except IndexError:
 				## remove logic for endfield
 				endfieldPos = p_chosen_figure.rel_pos % 40
 				p_current_player.end_fields[endfieldPos].figure = p_chosen_figure
 	
 		##new relative pos
-		newPos = self.calculate_new_pos(p_chosen_figure, p_eye_count)
+		new_pos = self.calculate_new_pos(p_chosen_figure, p_eye_count)
 	
 		##set field.figure
 		try:
 			##new abs pos
-			absPos = self.normalize_position(p_player_id=p_current_player.id, p_position=newPos)
+			abs_pos = self.normalize_position(p_player_id=p_current_player.id, p_position=new_pos)
 		
-			self.kick(absPos)
+			self.kick(abs_pos)
 
-			field = self.fields[absPos]
-			print(f"NewPos: {newPos}")
-			print(f"AbsPos: {absPos}")
+			field = self.fields[abs_pos]
+			print(f"NewPos: {new_pos}")
+			print(f"AbsPos: {abs_pos}")
 		except IndexError:
 			## move into endfield
-			endfieldPos = newPos % 40
+			endfieldPos = new_pos % 40
 			field = p_current_player.end_fields[endfieldPos]
 		field.figure = p_chosen_figure
 
 		## set figure.rel_pos
-		print(f"Moved {p_chosen_figure.id} to {newPos}")
-		p_chosen_figure.set_position(newPos)
+		print(f"Moved {p_chosen_figure.id} to {new_pos}")
+		p_chosen_figure.set_position(new_pos)
 
 	def choose_figure(self, available_figures):
+		"""Out of all available figures it returns the figure that was chosen by the player
+
+		This method is called in the current_turn method and takes the available_figures list as an input parameter.
+		It calls the wait_for_count method with the ids of all available figures and uses the count from the hand_thread
+		to select the figure.
+
+		Args: 
+			available_figures: Takes a list with all the available figures and their new position
+		"""
+
+		#create a list for the ids and iterate through all available figures to store ids
 		current_figure_ids = []
 		for figure in available_figures:
 			current_figure_ids.append(figure[0].id)
 		
 		self.wait_for_count(current_figure_ids)
 		
+		#get the current player to select the chosen figure with the input from the hand_thread
 		player = self.players[self.current_player]
 		chosen_figure = player.figures[self.hand_thread.current_count-1]
 		self.selected_figure = chosen_figure
 		return chosen_figure
 
 	def calculate_new_pos(self, p_chosen_figure, p_eye_count):
-		newPos = 0
+		"""Calculates the new position of a figure with the eye count of the dice
+
+		This function is called in the move method.
+
+		Args:
+			p_chosen_figure: takes the figure that the player chose
+			p_eye_count: takes the eye count recognized from the dice
+		"""
+		new_pos = 0
 		if  p_chosen_figure.rel_pos is not None:
-			newPos = p_chosen_figure.rel_pos + p_eye_count
-		return newPos
+			new_pos = p_chosen_figure.rel_pos + p_eye_count
+		return new_pos
 	
-	def kick(self, absPos):
-		if absPos > 39:
+	def kick(self, abs_pos):
+		"""Implements the kick logic from the board game rules
+
+		This method is used to check if there already is a figure on the new position of the chosen figure.
+		If there is one on the field, then it resets this figure's position to None, which resets the position
+		to the player's homefields. If there is no figure on the new field, the method does not do anything.
+
+		Args: 
+			abs_pos: takes the position of the field that should be checked
+		"""
+		#if new position is > 39 then the new position is an endfield
+		if abs_pos > 39:
 			return
 	
-		field = self.fields[absPos]
+		field = self.fields[abs_pos]
 	
+		#check if there is a figure on the field
 		if field.figure is not None:
 			field.figure.set_position(None)
 			self.turn_status = TurnStatus.KICK
