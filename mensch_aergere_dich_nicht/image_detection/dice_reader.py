@@ -182,7 +182,7 @@ class DiceReader(threading.Thread):
             self.prev_frame_time = time()
             
             # If only 6 or less dots are found, the current_eye_count can be updated
-            if eye_count <=6:
+            if eye_count <=6 and eye_count > 0:
                 self.update_eye_count(eye_count)
 
             # Writes the current dice count to the bottom left of the screen

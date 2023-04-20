@@ -64,8 +64,8 @@ class Game(threading.Thread):
 		#self.players[0].figures[0].set_position(36)
 
 		## move yellow's figure 1 to absPos 6 to test kick logic
-		#self.GameHandler.players[-1].figures[0].set_position(16)
-		#self.GameHandler.fields[6].figure = self.GameHandler.players[-1].figures[0]
+		# self.players[-1].figures[0].set_position(16)
+		# self.fields[6].figure = self.players[-1].figures[0]
 
 		## iterate through all players with their respective start_field index
 		for index, player in enumerate(self.players):
@@ -86,7 +86,7 @@ class Game(threading.Thread):
 		# for player in self.players:
 		# 	print({"color": player.color, "start_field": player.start_field, "finish_field": player.finish_field})
 		# for figure in self.figures:
-		# 	print({"relPos": figure.relPos, "team": figure.player, "item": figure.id})
+		# 	print({"rel_pos": figure.rel_pos, "team": figure.player, "item": figure.id})
 		# print("finished preparations")
 
 	def gesture_should_game_quit(self):
@@ -112,7 +112,8 @@ class Game(threading.Thread):
 			time.sleep(0.1)
 
 			current_gesture = self.hand_thread.current_gesture
-			if current_gesture == "peace":
+			if (current_gesture == "rock" and last_gesture == "peace") \
+				or (current_gesture == "peace" and last_gesture == "rock"):
 				quit = self.gesture_should_game_quit()
 				if quit:
 					return False
@@ -121,9 +122,11 @@ class Game(threading.Thread):
 				return True
 			elif second_goal_gesture is not None: 
 				if current_gesture != last_gesture and current_gesture == second_goal_gesture:
-					return False
-				
-			last_gesture = current_gesture
+					return False	
+				else:
+					last_gesture = current_gesture
+			else:
+				last_gesture = current_gesture
 
 	def wait_for_count(self, possible_figure_ids):
 		self.hand_thread.video_feed = "counter"
@@ -168,14 +171,14 @@ class Game(threading.Thread):
 			self.wait_for_gesture("thumbs up")
 
 	def move(self, p_current_player, p_chosen_figure, p_eye_count):
-		if p_chosen_figure.relPos is not None:
+		if p_chosen_figure.rel_pos is not None:
 			## remove figure from old field
 			try:
-				old_absPos = self.normalize_position(p_player_id=p_current_player.id, p_position=p_chosen_figure.relPos)
+				old_absPos = self.normalize_position(p_player_id=p_current_player.id, p_position=p_chosen_figure.rel_pos)
 				self.fields[old_absPos].figure = None
 			except IndexError:
 				## remove logic for endfield
-				endfieldPos = p_chosen_figure.relPos % 40
+				endfieldPos = p_chosen_figure.rel_pos % 40
 				p_current_player.end_fields[endfieldPos].figure = p_chosen_figure
 	
 		##new relative pos
@@ -197,7 +200,7 @@ class Game(threading.Thread):
 			field = p_current_player.end_fields[endfieldPos]
 		field.figure = p_chosen_figure
 
-		## set figure.relPos
+		## set figure.rel_pos
 		print(f"Moved {p_chosen_figure.id} to {newPos}")
 		p_chosen_figure.set_position(newPos)
 
@@ -222,8 +225,8 @@ class Game(threading.Thread):
 
 	def calculate_new_pos(self, p_chosen_figure, p_eye_count):
 		newPos = 0
-		if  p_chosen_figure.relPos is not None:
-			newPos = p_chosen_figure.relPos + p_eye_count
+		if  p_chosen_figure.rel_pos is not None:
+			newPos = p_chosen_figure.rel_pos + p_eye_count
 		return newPos
 	
 	def kick(self, absPos):
@@ -233,7 +236,7 @@ class Game(threading.Thread):
 		field = self.fields[absPos]
 	
 		if field.figure is not None:
-			field.figure.set_position(None, field.img_pos, field.figure.player.color, field.figure.id)
+			field.figure.set_position(None)
 			self.turn_status = TurnStatus.KICK
 
 	def normalize_position(self, p_player_id: int, p_position: int):
@@ -325,7 +328,7 @@ class Game(threading.Thread):
 				self.current_player = (self.current_player + 1) %4
 			else:
 				self.game_status = GameStatus.FINISHED
-				self.wait_for_gesture("peace")
+				self.wait_for_gesture("rock")
 				self.game_status = GameStatus.SHOULD_QUIT
 				self.wait_for_gesture("thumbs up")
 				self.game_status = GameStatus.QUIT

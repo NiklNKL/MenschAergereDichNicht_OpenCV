@@ -6,7 +6,26 @@ from utilities import Fps
 import imutils
 
 class Ui(threading.Thread):
+    """
+    A class representing the user interface for the Mensch-ärgere-dich-nicht game.
+    Containing three video streams (dice, gesture and board) and two segments displaying
+    the current game status and user instructions.
+    """
+
     def __init__(self, dice_thread, hand_thread, board_thread, game_thread, dice_cap, hand_cap, board_cap, use_img = False) -> None:
+        """
+        Initializes the Ui object.
+
+        Args:
+            dice_thread (threading.Thread): Thread object for the dice recognition.
+            hand_thread (threading.Thread): Thread object for the hand recognition.
+            board_thread (threading.Thread): Thread object for the board recognition.
+            game_thread (threading.Thread): Thread object for the game logic.
+            dice_cap (cv2.VideoCapture): Video capture object for the dice camera.
+            hand_cap (cv2.VideoCapture): Video capture object for the hand camera.
+            board_cap (cv2.VideoCapture): Video capture object for the board camera.
+            use_img (bool): Boolean indicating whether to use images instead of the camera feed for the board.
+        """
 
         threading.Thread.__init__(self)
         self._stop_event = threading.Event()
@@ -27,6 +46,8 @@ class Ui(threading.Thread):
         self.board_highlighting_treshold = 0
 
         self.board_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/test/reallife_frame.jpg', cv2.IMREAD_COLOR)
+        self.peace_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/ui_icons/peace.png', -1)
+        self.rock_image = cv2.imread('mensch_aergere_dich_nicht/resources/images/ui_icons/rock.png', -1)
 
         self.shape = (1920, 1080)
         self.font_scale_default = self.shape[0]/1920
@@ -51,6 +72,19 @@ class Ui(threading.Thread):
         self.stats = ""
 
     def prepare_frame(self, cap, shape, overlay=None, is_board = False):
+        """
+        Prepares and returns the UI frame. Crops the board frame to window size and
+        merges current frame with overlay. 
+        
+        Args:
+            cap (Cap): An instance of the Cap class used to capture video frames.
+            shape (tuple): The desired dimensions of the frame.
+            overlay (numpy.ndarray): An optional overlay to be applied to the frame.
+            is_board (bool): A flag indicating whether the captured frame is the game board or not.
+        
+        Returns:
+            numpy.ndarray: A numpy array representing the UI frame with overlays.
+        """
         frame = cap.frame
         
         ##crop frame if it is board
@@ -78,9 +112,25 @@ class Ui(threading.Thread):
         return final_frame
     
     def terminal_text(self, frame, text, x, y):
+        """
+        Adds text to the terminal frame at the specified location.
+
+        Args:
+            frame (numpy.ndarray): The frame to which text should be added.
+            text (str): The text to add.
+            x (int): The x-coordinate of the top-left corner of the text.
+            y (int): The y-coordinate of the top-left corner of the text.
+
+        Returns:
+            numpy.ndarray: The frame with the text added.
+        """
         return cv2.putText(frame, text ,(x,y), cv2.FONT_HERSHEY_COMPLEX_SMALL, self.font_scale_default*1.2, (0, 0, 0), round(self.font_scale_default*1))
 
     def update_terminal(self):
+        """
+        Updates the contents of the terminal frame.
+        Reads content from corresponding threads.
+        """
         self.terminal_frame = np.full((self.terminal_frame_shape[1], self.terminal_frame_shape[0], 3), 255, np.uint8)
         x,y = self.terminal_frame_shape
 
@@ -99,28 +149,32 @@ class Ui(threading.Thread):
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_count), int(0+x*0.95), int(0+y*0.9))
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.hand_thread.current_gesture), int(0+x*0.71), int(0+y*0.5))
         self.terminal_frame = self.terminal_text(self.terminal_frame, str(self.dice_thread.current_eye_count), int(0+x*0.9), int(0+y*0.7))
-        
+    
+    def resize_icon(self, icon, y, x, placement):
+        icon_bgra = imutils.resize(icon, height=int(y*0.2))
+        alpha_channel = icon_bgra[:,:,-1]
+        peace_icon_bgr = icon_bgra[:,:,:-1]
+        ROI = self.instruction_frame[y-icon_bgra.shape[0]:y, int(x*placement)-icon_bgra.shape[1]:int(x*placement)]
+        ROI[alpha_channel==255] = peace_icon_bgr[alpha_channel==255]
+        return peace_icon_bgr, ROI
+
     def update_instruction(self):
+        """
+        Update the UI instructions window.
+        Set color to current players color.
+        """
         self.instruction_frame = np.full((self.instruction_frame_shape[1], self.instruction_frame_shape[0], 3), 255, np.uint8)
         x,y = self.instruction_frame_shape
-        
-        self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.85), y), (x, int(y-y*0.2)), (0,0,0), 2)
 
-        icon_bgra = cv2.imread("mensch_aergere_dich_nicht/resources/images/peace.png", -1)
-        icon_bgra = imutils.resize(icon_bgra, height=int(y*0.2))
-        alpha_channel = icon_bgra[:,:,-1]
-        icon_bgr = icon_bgra[:,:,:-1]
-        ROI = self.instruction_frame[y-icon_bgra.shape[0]:y, int(x*0.99)-icon_bgra.shape[1]:int(x*0.99)]
-        ROI[alpha_channel==255] = icon_bgr[alpha_channel==255]
-        self.instruction_frame[y-icon_bgra.shape[0]:y, int(x*0.99)-icon_bgra.shape[1]:int(x*0.99)] = ROI
-        # peace = cv2.resize(peace, ((x-int(0+x*0.85)),int((y*0.2))))
-        # self.instruction_frame[y-icon.shape[0]:y, x-icon.shape[1]:x, :]=icon
-        # if self.game_thread.turn_status.value.get("continue") == True:
-        #     cv2.putText(self.instruction_frame, "Fortfahren:" ,(int(0+x*0.32), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
-        # if self.game_thread.turn_status.value.get("back") == True:
-        #     cv2.putText(self.instruction_frame, "Zurueck:" ,(int(0+x*0.6), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0), 1)
+        # load, resize and place peace icon
+        peace_icon, ROI_peace = self.resize_icon(self.peace_image, y, x, 0.99)
+        self.instruction_frame[y-peace_icon.shape[0]:y, int(x*0.99)-peace_icon.shape[1]:int(x*0.99)] = ROI_peace
+
+        rock_icon, ROI_rock = self.resize_icon(self.rock_image, y, x, 0.96)
+        self.instruction_frame[y-rock_icon.shape[0]:y, int(x*0.96)-rock_icon.shape[1]:int(x*0.96)] = ROI_rock
+
         if self.game_thread.turn_status.value.get("quit") == True:
-            cv2.putText(self.instruction_frame, "Quit game = Peace" ,(int(0+x*0.84), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*1, (0, 0, 0), round(self.font_scale_default*1))
+            cv2.putText(self.instruction_frame, "Quit game:" ,(int(0+x*0.84), int(0+y*0.93)), cv2.FONT_HERSHEY_PLAIN, self.font_scale_default*1, (0, 0, 0), round(self.font_scale_default*1))
             self.instruction_frame = cv2.rectangle(self.instruction_frame, (int(0+x*0.83), y), (x, int(y-y*0.2)), (0,0,0), 2)
 
         upper_text = self.get_correct_instruction(upper_text = True)
@@ -145,13 +199,22 @@ class Ui(threading.Thread):
         self.instruction_frame = cv2.putText(self.instruction_frame, "Game HUB" ,(int(0+x*0.4),int(0+y*0.2)), cv2.FONT_HERSHEY_TRIPLEX, self.font_scale_default*1.2, (255, 255, 255), round(self.font_scale_default*1))
 
     def figure_ids_to_string(self, figure_array):
+        """
+        Given a list of figures, returns a string representing stating the figure ids.
+
+        Args:
+            figure_array (list): List of Figure objects.
+
+        Returns:
+            str: A string representing a list of figure ids in natural language
+        """
         current_figure_id_array = []
         for figure in figure_array:
             current_figure_id_array.append(figure[0].id)
         result = ""
         for index, id in enumerate(current_figure_id_array):
             if len(current_figure_id_array) == 1:
-                result = result + str(id+1) + " is "
+                result = result + str(id+1) + " is"
                 
             elif index < len(current_figure_id_array)-1:
                 result = result + str(id+1)
@@ -162,10 +225,20 @@ class Ui(threading.Thread):
                 else:
                     result = result + ", "
             else:
-                result = result + str(id+1)
+                result = result + str(id+1) + " are"
         return result
 
     def get_correct_instruction(self, upper_text):
+        """
+        Logic for the displayed instructions.
+
+        Args:
+            upper_text: A boolean value indicatig whether the upper or
+                lower text should be used
+
+        Returns: Instruction string 
+        """
+
         game_status = str(self.game_thread.game_status.name)
         turn_status = str(self.game_thread.turn_status.name)
         current_player_color = self.game_thread.players[self.game_thread.current_player].color
@@ -183,7 +256,7 @@ class Ui(threading.Thread):
             elif turn_status == "ROLL_DICE_HOME":
                 return f"Player {current_player_color}: Roll the Dice! {3-self.game_thread.current_try} tries left ..."
             elif turn_status == "SELECT_FIGURE":
-                return f"Figures {self.figure_ids_to_string(self.game_thread.current_turn_available_figures)} are available."
+                return f"Figure(s) {self.figure_ids_to_string(self.game_thread.current_turn_available_figures)} available."
             elif turn_status == "SELECT_FIGURE_ACCEPT":
                 return f"Figure {str(self.game_thread.selected_figure.id+1)} was selected."
             elif turn_status == "SELECT_FIGURE_SKIP":
@@ -223,6 +296,17 @@ class Ui(threading.Thread):
         return self._stop_event.is_set()
 
     def draw_frame(self, frame, text, is_board = False):
+        """
+        Draws overlays on frames from videostream
+
+        Args:
+            frame: The frame
+            text: Text describing content of current frame
+            is_board: optional boolean value indicating if the current frame
+                contains the board
+        
+        Returns: Frame with overlays
+        """
         y,x,c = frame.shape
         if is_board:
             top_bar_width = int(0+y*0.055)
@@ -239,20 +323,19 @@ class Ui(threading.Thread):
         return frame
     
     def draw_highlighting(self, frame, coordinates, radius, highlighting_color, idx):
-        
-        '''Gets called by the highlighting() method and draws a circle with text inside.
+        """
+        Gets called by the highlighting() method and draws a circle with text inside.
                 
-                This method is used to draw the highlighting for figures and moves with the corresponding
-                figure id inside the circle. It uses the circle() and putText() method from the opencv package.
-                
-                Args:
-                    frame: takes the mask/a frame for drawing
-                    coordinates: the x and y coordinates of the middle of the field
-                    radius: radius of the field
-                    highlighting_color: the color which should be used for the circle
-                    idx: the id of the figure
-                '''
+        This method is used to draw the highlighting for figures and moves with the corresponding
+        figure id inside the circle. It uses the circle() and putText() method from the opencv package.
         
+        Args:
+            frame: takes the mask/a frame for drawing
+            coordinates: the x and y coordinates of the middle of the field
+            radius: radius of the field
+            highlighting_color: the color which should be used for the circle
+            idx: the id of the figure
+        """
         #draw circle
         cv2.circle(frame, (int(coordinates[0]), int(coordinates[1])), radius, highlighting_color, round(self.font_scale_default*10))
 
@@ -359,6 +442,12 @@ class Ui(threading.Thread):
         return frame
 
     def run(self):
+        """
+        '''Gets called by ui_thread.start() and runs all the logic.
+
+        Contains preparation and stacking of frames to display in one window.
+        '''
+        """
 
         while True:
 

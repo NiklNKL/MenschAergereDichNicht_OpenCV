@@ -189,7 +189,7 @@ class HandReader(threading.Thread):
         
         # Initialize a dictionaty to store the frames paths of the both hands.
         # Initially it contains red hands frames paths. The red frame represents that the hand is not present in the frame. 
-        HANDS_IMGS_PATHS = {'LEFT': ["mensch_aergere_dich_nicht/resources/frames/finger/left_hand_not_detected.png"], 'RIGHT': ['mensch_aergere_dich_nicht/resources/frames/finger/right_hand_not_detected.png']}
+        HANDS_IMGS_PATHS = {'LEFT': ["mensch_aergere_dich_nicht/resources/images/finger/left_hand_not_detected.png"], 'RIGHT': ['mensch_aergere_dich_nicht/resources/images/finger/right_hand_not_detected.png']}
         
         # Check if there is hand(s) in the frame.
         if results.multi_hand_landmarks:
@@ -202,14 +202,14 @@ class HandReader(threading.Thread):
                 
                 # Update the frame path of the hand to a green color hand frame.
                 # This green frame represents that the hand is present in the frame. 
-                HANDS_IMGS_PATHS[hand_label.upper()] = ['mensch_aergere_dich_nicht/resources/frames/finger/'+hand_label.lower()+'_hand_detected.png']
+                HANDS_IMGS_PATHS[hand_label.upper()] = ['mensch_aergere_dich_nicht/resources/images/finger/'+hand_label.lower()+'_hand_detected.png']
                 
                 # Check if all the fingers of the hand are up/open.
                 if count[hand_label.upper()] == 5:
                     
                     # Update the frame path of the hand to a hand frame with green color palm and orange color fingers frame.
                     # The orange color of a finger represents that the finger is up.
-                    HANDS_IMGS_PATHS[hand_label.upper()] = ['mensch_aergere_dich_nicht/resources/frames/finger/'+hand_label.lower()+'_all_fingers.png']
+                    HANDS_IMGS_PATHS[hand_label.upper()] = ['mensch_aergere_dich_nicht/resources/images/finger/'+hand_label.lower()+'_all_fingers.png']
                 
                 # Otherwise if all the fingers of the hand are not up/open.
                 else:
@@ -223,7 +223,7 @@ class HandReader(threading.Thread):
                             # Append another frame of the hand in the list inside the dictionary.
                             # This frame only contains the finger we are iterating upon of the hand in orange color.
                             # As the orange color represents that the finger is up.
-                            HANDS_IMGS_PATHS[hand_label.upper()].append('mensch_aergere_dich_nicht/resources/frames/finger/'+finger.lower()+'.png')
+                            HANDS_IMGS_PATHS[hand_label.upper()].append('mensch_aergere_dich_nicht/resources/images/finger/'+finger.lower()+'.png')
         
         ########################################################################################################################
         

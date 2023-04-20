@@ -10,9 +10,9 @@ from utilities import Fps
 def main():
 
     fps_tracker = Fps("MainThread")
-    dice_camera_id = 1
-    hand_camera_id = 1
-    board_camera_id = 1
+    dice_camera_id = 0
+    hand_camera_id = 0
+    board_camera_id = 0
 
     prev_frame_time = 0
 
@@ -51,7 +51,7 @@ def main():
     print(f"\nWe got all the frames! It took: {(time.time()-new_time):.3f} seconds.\n")
     new_time = time.time()
 
-    dice_thread = DiceReader(cap=dice_cap, time_threshold = 1)
+    dice_thread = DiceReader(cap=dice_cap, time_threshold = 2)
     dice_thread.name = "DiceReaderThread"
     hand_thread = HandReader(cap=hand_cap, time_threshold = 1)
     hand_thread.name = "HandReaderThread"

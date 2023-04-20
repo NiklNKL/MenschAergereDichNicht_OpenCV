@@ -283,7 +283,7 @@ class BoardReader(threading.Thread):
     #     for figure, field in avail_moves:
     #         # _, board = cap.read()
     #         board = UiHandler.boardFrame
-    #         normPos = game_logic.normalize_position(figure.player, figure.relPos)
+    #         normPos = game_logic.normalize_position(figure.player, figure.rel_pos)
 
     #         normCord = BoardgameHandler.fields[normPos].img_pos
     #         newCord = BoardgameHandler.fields[field].img_pos
