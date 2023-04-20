@@ -9,7 +9,7 @@ class Game(threading.Thread):
 
 		threading.Thread.__init__(self)
 
-		self.corners = board_thread.corners
+		self.corners = []
 		
 		self.fields = []
 		self.figures = []
@@ -277,6 +277,8 @@ class Game(threading.Thread):
 	def run(self):
 
 		self.create_boardgame()
+
+		self.corners = self.board_thread.corners
 		
 		self.initialized = True
 		self.game_status = GameStatus.START
