@@ -81,17 +81,6 @@ class BoardReader(threading.Thread):
                             key=lambda c: c[1], reverse=True)[1]
         cnt = contours[index]
 
-        """
-        ## show all contours
-        frame = cv2.drawContours(frame, [contours[index]], -1, (0,255,255), 10)
-        cv2.imshow("Shapes", frame)
-        cv2.waitKey(0)
-        ## show selected contour
-        frame = cv2.drawContours(frame, [cnt], -1, (0,255,255), 10)
-        cv2.imshow("Shapes", frame)
-        cv2.waitKey(0)
-        """
-
         ## define playground borders
         epsilon = 0.01*cv2.arcLength(cnt,True)
         corners = np.squeeze(cv2.approxPolyDP(cnt, epsilon, True), axis=1)
@@ -186,19 +175,6 @@ class BoardReader(threading.Thread):
                                                 maxR_factor=0.05343375120790832, 
                                                 fields=40)
 
-        """
-        ## show detected fields
-        fields = np.uint16(np.around(detected_circles))
-        for pt in fields:
-            a, b, r = pt[0], pt[1], pt[2]
-            # Draw the circumference of the circle.
-            cv2.circle(frame, (a, b), r, (0, 255, 0), 20)
-            # Draw a small circle (of radius 1) to show the center.
-            cv2.circle(frame, (a, b), 10, (0, 0, 255), 3)
-        cv2.imshow("frame", frame)
-        cv2.waitKey(0)
-        """
-
         ## order by angle
         corner = corners[0]
         angles = []
@@ -269,28 +245,6 @@ class BoardReader(threading.Thread):
             home_fields.append(homefield)
             end_fields.append(endfield)
 
-        # end_fields = np.uint16(np.around(end_fields))
-        # home_fields = np.uint16(np.around(home_fields))
-        # for index, color in enumerate(["G","R","B","Y"]):
-        #     homefield = home_fields[index]
-        #     endfield = end_fields[index]
-        #     for idx, (_, a, b, r) in enumerate(homefield):
-        #     # a, b, r = pt[1], pt[2], pt[3]
-        #     # Draw the circumference of the circle.
-        #         cv2.circle(self.frame, (a, b), r, (0, 255, 0), 20)
-        #         # Draw a small circle (of radius 1) to show the center.
-        #         cv2.putText(self.frame, f"H_{color}_{idx}", (a, b),
-        #             cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
-        #     for idx, (_, a, b, r) in enumerate(endfield):
-        #     # a, b, r = pt[1], pt[2], pt[3]
-        #     # Draw the circumference of the circle.
-        #         cv2.circle(self.frame, (a, b), r, (0, 255, 0), 20)
-        #         # Draw a small circle (of radius 1) to show the center.
-        #         cv2.putText(self.frame, f"E_{color}_{idx}", (a, b),
-        #             cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 5)
-        
-        # cv2.waitKey(0)
-
         print(f"Finished non_street detection with {len(sortedStreet)} fields")
         return home_fields, end_fields
 
@@ -319,14 +273,6 @@ class BoardReader(threading.Thread):
             
             ## check if pixels in the HSV color range 40-70 (green) are found in masked area
             if self.check_color_in_mask(mask_area, [(35, 40, 40), (120,255,255)]):
-                """
-                ## show circle containing the green startingfield
-                # cv2.imwrite("exports/masks/mask_area"+str(index)+".png", mask_area)
-                cv2.imshow("mask", cv2.bitwise_and(cv2.circle(mask,
-                    (int(street[index][0]),int(street[index][1])),
-                    int(street[index][2]), (255,255,255), -1), frame))
-                cv2.waitKey(0)
-                """
                 print("finished starting field detection")
                 return index
 
