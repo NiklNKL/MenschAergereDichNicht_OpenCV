@@ -90,7 +90,14 @@ class Game(threading.Thread):
 		# print("finished preparations")
 
 	def gesture_should_game_quit(self):
+		'''Game logic on question if game should be quit
+		
+		Similar logic to wait_for_gesture()
+		'''
+
+		# change detection to gesture
 		self.hand_thread.video_feed = "gesture"
+
 		self.game_status = GameStatus.SHOULD_QUIT
 
 		while True and not self.stopped():
@@ -105,19 +112,35 @@ class Game(threading.Thread):
 				return False
 
 	def wait_for_gesture(self, goal_gesture, second_goal_gesture = None):
+		'''Check the current found gesture and return Boolean when found
+
+		Wait for a change from the current displayed gesture and depending
+		the detected gesture return true or False.
+		
+		Args:
+			goal_gesture:			first gesture to look for
+			second_goal_gesture:	second gesture to look for
+		'''
+
+		# change detection in video feed to gesture
 		self.hand_thread.video_feed = "gesture"
+
+		# get the last detected gesture from hand reader
 		last_gesture = self.hand_thread.current_gesture
 
 		while True and not self.stopped():
 			time.sleep(0.1)
 
 			current_gesture = self.hand_thread.current_gesture
+
+			# game quit gesture detected
 			if (current_gesture == "rock" and last_gesture == "peace") \
 				or (current_gesture == "peace" and last_gesture == "rock"):
 				quit = self.gesture_should_game_quit()
 				if quit:
 					return False
 
+			# gesture needs to have at least one change before being accepted
 			if current_gesture != last_gesture and current_gesture == goal_gesture:
 				return True
 			elif second_goal_gesture is not None: 
@@ -129,9 +152,23 @@ class Game(threading.Thread):
 				last_gesture = current_gesture
 
 	def wait_for_count(self, possible_figure_ids):
+		'''Check the current displayed finger count until a matching one is found
+
+		Similar to wait_for_gesture()
+
+		Args:
+			possible_figure_ids:	ids of figures that could be moved / selected
+		'''
+
+		# change the detection to counter
 		self.hand_thread.video_feed = "counter"
+
+		# last detected count in hand counter
 		last_count = self.hand_thread.current_count
+		
+		# wait for 10 fingers to be shown
 		showed_ten = False
+
 		while True and not self.stopped():
 			time.sleep(0.1)
 
@@ -143,30 +180,37 @@ class Game(threading.Thread):
 				last_count = self.hand_thread.current_count
 
 	def current_turn(self, eye_count):
+		'''Logic for playing a turn after rolling a dice
+		
+			Args:
+				eye_count: 	the rolled eye count of the current turn
+		'''
+		# get current player
 		player = self.players[self.current_player]
 
+		# get and save available figures from player
 		available_figures = player.available_figures(eye_count)
 		self.current_turn_available_figures = available_figures
-		figure_ids = []
-		for figure, id in available_figures:
-			figure_ids.append(figure.id)
 
 		if len(available_figures) > 0:
+			# at least one figure movable
 			figure_accepted = False
 			while not figure_accepted and not self.stopped() and not self.game_status == GameStatus.QUIT:
-				self.turn_status = TurnStatus.SELECT_FIGURE
-				## Wenn Zug möglich, wähle einen aus
+				
+				# select figure
+				self.turn_status = TurnStatus.SELECT_FIGURE 
 				chosen_figure = self.choose_figure(available_figures)
+				
+				# accept selected figure
 				self.turn_status = TurnStatus.SELECT_FIGURE_ACCEPT
 				figure_accepted = self.wait_for_gesture("thumbs up", "thumbs down")
 
-			# self.turn_status = TurnStatus.MOVE_FIGURE
-			# self.wait_for_gesture("thumbs up")
-			## führe Zug aus
+			# apply turn
 			if not self.stopped() and not self.game_status == GameStatus.QUIT:
 				self.move(player, chosen_figure, eye_count)
 
 		else:
+			# no figure movable
 			self.turn_status = TurnStatus.SELECT_FIGURE_SKIP
 			self.wait_for_gesture("thumbs up")
 
