@@ -21,9 +21,9 @@ def main():
     prev_frame_time = 0
 
     # Camera_ids for all cameras
-    dice_camera_id = 0
-    hand_camera_id = 0
-    board_camera_id = 0
+    dice_camera_id = 2
+    hand_camera_id = 3
+    board_camera_id = 1
 
     print("\nStarting threads...")
 
